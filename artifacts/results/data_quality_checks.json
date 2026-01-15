@@ -1,0 +1,10 @@
+{
+    "not_empty": true,
+    "has_multiple_rows_and_columns": true,
+    "expected_columns_present": true,
+    "target_column_present": true,
+    "no_infinity_values": true,
+    "no_negative_values": true,
+    "no_duplicate_rows": false,
+    "no_missing_values": false
+}
