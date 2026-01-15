@@ -18,7 +18,7 @@ class DescriptiveStats(LoggerMixin):
     def __init__(self, config: Dict[str, Any] ) -> None:
         super().__init__()
         self.config = config
-        self.logger = self.setup_class_logger('descriptive_stats', config, 'logging')
+        self.logger = self.setup_class_logger('DescriptiveStats', config, 'logging')
 
     def summary_numeric(self, df: pd.DataFrame, output_dir: str | Path) -> List[str]:
         """Compute summary statistics for a numeric column.

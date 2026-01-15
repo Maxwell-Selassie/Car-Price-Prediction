@@ -19,7 +19,7 @@ class DataLoader(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         self.config = config
-        self.logger = self.setup_class_logger('data_loader', config, 'logging')
+        self.logger = self.setup_class_logger('DataLoader', config, 'logging')
 
     def load_dataset(self, dataset_name: str) -> pd.DataFrame:
         """Load a dataset by name.

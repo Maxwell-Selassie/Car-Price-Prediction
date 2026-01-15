@@ -196,7 +196,7 @@ class DataQualityChecker(LoggerMixin):
         self.check_duplicates(df)
         self.check_data_constants(df)
         self.outliers_check(df)
-        return self.validation
+
 
     def save_validation_report(self, output_path: str | Path) -> None:
         """Save the validation dict as json data to a specified path."""

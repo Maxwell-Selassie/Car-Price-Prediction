@@ -11,7 +11,7 @@ project:
 file_paths:
   raw_data: data/raw/car_details.csv
   eda_reports: artifacts/reports/eda/
-  figures: artifacts/reports/figures/
+  figures_dir: artifacts/reports/figures/
 
 logging:
   level: INFO
@@ -59,7 +59,7 @@ data_quality_checks:
   target_variable:
     name: selling_price
     type: numerical
-    
+
   inference:
     enabled: true
     sample_size: 1000
