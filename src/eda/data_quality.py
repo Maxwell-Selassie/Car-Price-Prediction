@@ -16,7 +16,8 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Any, List, Optional, Tuple, Dict
-from utils import LoggerMixin, mlflow
+from utils import LoggerMixin, ensure_directory
+import mlflow
 import json 
 
 class DataQualityChecker(LoggerMixin):
@@ -24,6 +25,8 @@ class DataQualityChecker(LoggerMixin):
         super().__init__()
         self.config = config
         self.logger = self.setup_class_logger("DataQualityChecker", config, "logging")
+        self.output_dir = config["file_paths"].get("eda_reports", "data_quality_reports")
+        ensure_directory(self.output_dir)
         self.validation: Dict[str, Any] = {}
 
     def empty_dataframe_check(self, df: pd.DataFrame) -> None:
@@ -114,7 +117,7 @@ class DataQualityChecker(LoggerMixin):
         self.validation['constant_columns'] = constant_columns
 
     # missing values check
-    def missing_values_check(self, df: pd.DataFrame, output_dir: str | Path) -> None:
+    def missing_values_check(self, df: pd.DataFrame) -> None:
         """
             Check for missing values in the dataframe and return a summary dataframe
             containing columns with missing values, number of missing values and percentage
@@ -122,7 +125,6 @@ class DataQualityChecker(LoggerMixin):
 
             Args:
                 df: pd.DataFrame
-                output_dir: str|Path = Directory to save the missing values summary
         """
         missing_summary = df.isnull().sum()
         if len( missing_summary[missing_summary > 0]) == 0:
@@ -137,7 +139,7 @@ class DataQualityChecker(LoggerMixin):
             'Missing Values': missing_summary,
             'Percentage': missing_percentage
         })
-        artifact_path = f"{output_dir}/missing_values_summary.csv"
+        artifact_path = f"{self.output_dir}/missing_values_summary.csv"
         missing_df.to_csv(artifact_path)
 
         mlflow.log_artifact(artifact_path)
@@ -176,7 +178,11 @@ class DataQualityChecker(LoggerMixin):
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
             outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
-            outlier_info[col] = len(outliers)
+            outlier_info[col] = {
+                'num_outliers': len(outliers),
+                'lower_bound': lower_bound,
+                'upper_bound': upper_bound
+            }
             if len(outliers) > 0:
                 self.logger.warning(f"Column '{col}' contains {len(outliers)} outliers.")
         
@@ -201,7 +207,7 @@ class DataQualityChecker(LoggerMixin):
     def save_validation_report(self, output_path: str | Path) -> None:
         """Save the validation dict as json data to a specified path."""
         if self.validation:
-            output_path = Path(output_path)
+            output_path = Path(f"{output_path}/data_quality_validation_report.json")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, 'w') as f:
                 json.dump(self.validation, f, indent=4)

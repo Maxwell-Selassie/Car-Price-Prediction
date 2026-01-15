@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from utils import LoggerMixin
 import mlflow
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 class DescriptiveStats(LoggerMixin):
@@ -20,7 +20,7 @@ class DescriptiveStats(LoggerMixin):
         self.config = config
         self.logger = self.setup_class_logger('DescriptiveStats', config, 'logging')
 
-    def summary_numeric(self, df: pd.DataFrame, output_dir: str | Path) -> List[str]:
+    def summary_numeric(self, df: pd.DataFrame, output_dir: str | Path) -> Optional[List]:
         """Compute summary statistics for a numeric column.
 
         Args:
@@ -51,8 +51,8 @@ class DescriptiveStats(LoggerMixin):
         mlflow.set_tag("mlflow.note.content",
                 f"Numeric summary statistics computed for {len(numeric_cols)} columns. - See artifact: {output_path}")
         return numeric_cols
-    
-    def summary_categorical(self, df: pd.DataFrame, output_dir: str | Path) -> List[str]:
+
+    def summary_categorical(self, df: pd.DataFrame, output_dir: str | Path) -> Optional[List]:
         """Compute summary statistics for a categorical column.
 
         Args:
@@ -77,5 +77,5 @@ class DescriptiveStats(LoggerMixin):
         mlflow.log_artifact(str(output_path))
         mlflow.note.content("mlflow.note.content",
                 f"Categorical summary statistics computed for {len(categorical_cols)} columns. - See artifact: {output_path}")
-        return categorical_cols
+       
     
