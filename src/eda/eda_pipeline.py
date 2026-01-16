@@ -12,10 +12,12 @@ from typing import List, Optional
 import sys
 import warnings
 warnings.filterwarnings("ignore")
+import os
+from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from utils import ensure_directory, read_yaml, Timer, setup_logger
+from utils import ensure_directory, read_yaml, Timer, setup_logger, write_json
 from eda import (
     DataLoader, DataQualityChecker, EDAVisualizer, DescriptiveStats
 )
@@ -37,9 +39,17 @@ class EDAPipeline:
         self.logger.info('='*80)
 
 
-    def execute(self) -> dict:
+    def execute(self) -> None:
         """Execute the EDA pipeline"""
         try:
+            load_dotenv()
+
+            TRACKING_URI = os.getenv('MLFLOW_TRACKER')
+            if TRACKING_URI is None:
+                raise ValueError(f'Tracking URI not found. Exiting...')
+            
+            mlflow.set_tracking_uri(TRACKING_URI)
+            mlflow.set_experiment(experiment_name="Car Price Prediction (EDA)")
             with mlflow.start_run(run_name="EDA_Pipeline") as run:
                 mlflow.set_tag("stage", "EDA")
 
@@ -60,8 +70,7 @@ class EDAPipeline:
                         dq_checker = DataQualityChecker(config)
                         quality_report = dq_checker.run_all_checks(df, 
                             expected_columns=config['data_quality_checks']["expected_columns"],
-                            target_column=config['data_quality_checks']["target_column"],
-                            output_dir=Path(config["file_paths"].get("eda_reports", "data_quality_reports"))
+                            target_column=config['data_quality_checks']["target_variable"],
                         )
                         dq_checker.save_validation_report()
                         self.results['data_quality'] = quality_report
@@ -71,28 +80,43 @@ class EDAPipeline:
                 with mlflow.start_run(run_name="Descriptive_Statistics", nested=True):
                     with Timer('Descriptive Statistics', self.logger):
                         desc_stats = DescriptiveStats(config)
-                        stats_report_numeric = desc_stats.summary_numeric()
-                        stats_report_categorical = desc_stats.summary_categorical()
+                        stats_report_numeric = desc_stats.summary_numeric(df)
+                        stats_report_categorical = desc_stats.summary_categorical(df)
                         self.results['descriptive_statistics'] = {
                             'numeric_stats_reports' : stats_report_numeric,
-                            'categorical_stats_reports' : 
+                            'categorical_stats_reports' : stats_report_categorical
                         }
                         self.logger.info("Descriptive statistics generated")
 
                 # Visualizations
                 with mlflow.start_run(run_name="Visualizations", nested=True):
-                    with Timer('Visualizations', self.logger)
-                        visualizer = EDAVisualizer(df, 
-                        output_dir=Path(config['visualizations']['output_dir']))
-                        visualizer.generate_all_plots()
+                    with Timer('Visualizations', self.logger):
+                        visualizer = EDAVisualizer(config)
+                        visualizer.run_all_visualizations(df)
                         self.logger.info("Visualizations generated")
-
                 self.logger.info("EDA Pipeline Execution Completed Successfully")
                 
-            return self.results
+                # save eda results
+                if self.results:
+                    output_dir = config["file_paths"].get("eda_reports", "eda_reports")
+                    ensure_directory(output_dir)
+                    output_path = f"{output_dir}/eda_results.json"
+                    write_json(self.results, output_path, indent=4)
+                    self.logger.info(f"EDA results saved to: {output_path}")
+                else:
+                    self.logger.error(f"No eda results to save")
 
+                mlflow.log_artifact(output_path)
+
+            self.logger.info("="*50)
+            self.logger.info("EDA Pipeline Completed")
+            self.logger.info("="*50)
+                
         except Exception as e:
             self.logger.error(f"EDA Pipeline Execution Failed: {e}")
             raise
     
-    
+if __name__ == '__main__':
+    pipeline = EDAPipeline(config_path="config/eda_config.yaml")
+    pipeline.execute()
+    print()

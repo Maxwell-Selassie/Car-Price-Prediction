@@ -32,18 +32,18 @@ class DataLoader(LoggerMixin):
         """
         try:
             self.logger.info(f"Loading dataset: {dataset_name}")
-            dataset_path = Path(self.config['file_paths'][dataset_name])
+            dataset_path = Path(self.config['file_paths']['raw_data'])
             df = read_csv(dataset_path)
 
             dataset = mlflow.data.from_pandas(
                 df, source=dataset_path
             )
 
-            with mlflow.start_run():
-                mlflow.log_input(dataset, context="primary_dataset")
-                mlflow.set_tag("mlflow.note.content",
-                    f"Loaded {dataset_name} dataset from {dataset_path} for EDA."
-                    f"Data contains {df.shape[0]} rows and {df.shape[1]} columns.")
+
+            mlflow.log_input(dataset, context="primary_dataset")
+            mlflow.set_tag("mlflow.note.content",
+            f"Loaded {dataset_name} dataset from {dataset_path} for EDA."
+            f"Data contains {df.shape[0]} rows and {df.shape[1]} columns.")
 
             self.logger.info(f"Dataset {dataset_name} loaded with shape {df.shape}")
 

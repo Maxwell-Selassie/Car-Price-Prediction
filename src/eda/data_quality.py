@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Any, List, Optional, Tuple, Dict
-from utils import LoggerMixin, ensure_directory
+from utils import LoggerMixin, ensure_directory, write_json
 import mlflow
 import json 
 
@@ -143,7 +143,7 @@ class DataQualityChecker(LoggerMixin):
         missing_df.to_csv(artifact_path)
 
         mlflow.log_artifact(artifact_path)
-        self.validation['total_missing_columns'] = len(missing_df)
+        self.validation['total_missing_values'] = missing_summary.sum()
 
     #checking for duplicated data, keeping the first occurence
     def check_duplicates(self, df: pd.DataFrame) -> None:
@@ -183,6 +183,8 @@ class DataQualityChecker(LoggerMixin):
                 'lower_bound': lower_bound,
                 'upper_bound': upper_bound
             }
+            artifact_path = f"{self.output_dir}/outliers.json"
+            write_json(outlier_info, artifact_path, indent=4)
             if len(outliers) > 0:
                 self.logger.warning(f"Column '{col}' contains {len(outliers)} outliers.")
         
@@ -190,7 +192,7 @@ class DataQualityChecker(LoggerMixin):
 
     
     def run_all_checks(self, df: pd.DataFrame, expected_columns: List[str], 
-                    target_column: str, output_dir: str | Path) -> Dict[str, Any]:
+                    target_column: str) -> Dict[str, Any]:
         """Run all data quality checks on the dataframe."""
         self.empty_dataframe_check(df)
         self.multiple_rows_columns_check(df)
@@ -198,19 +200,17 @@ class DataQualityChecker(LoggerMixin):
         self.infinite_values_check(df)
         self.expected_columns_check(df, expected_columns)
         self.target_column_check(df, target_column)
-        self.missing_values_check(df, output_dir)
+        self.missing_values_check(df)
         self.check_duplicates(df)
         self.check_data_constants(df)
         self.outliers_check(df)
 
 
-    def save_validation_report(self, output_path: str | Path) -> None:
+    def save_validation_report(self) -> None:
         """Save the validation dict as json data to a specified path."""
         if self.validation:
-            output_path = Path(f"{output_path}/data_quality_validation_report.json")
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w') as f:
-                json.dump(self.validation, f, indent=4)
+            output_path = Path(f"{self.output_dir}/data_quality_validation_report.json")
+            write_json(self.validation, output_path, indent=4)
             self.logger.info(f"Validation report saved to {output_path}")
         else:
             self.logger.warning("No validation data to save.")

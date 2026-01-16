@@ -1,0 +1,34 @@
+{
+    "count":{
+        "name":8128,
+        "fuel":8128,
+        "seller_type":8128,
+        "transmission":8128,
+        "owner":8128,
+        "torque":7906
+    },
+    "unique":{
+        "name":2058,
+        "fuel":4,
+        "seller_type":3,
+        "transmission":2,
+        "owner":5,
+        "torque":441
+    },
+    "top":{
+        "name":"Maruti Swift Dzire VDI",
+        "fuel":"Diesel",
+        "seller_type":"Individual",
+        "transmission":"Manual",
+        "owner":"First Owner",
+        "torque":"190Nm@ 2000rpm"
+    },
+    "freq":{
+        "name":129,
+        "fuel":4402,
+        "seller_type":6766,
+        "transmission":7078,
+        "owner":5289,
+        "torque":530
+    }
+}

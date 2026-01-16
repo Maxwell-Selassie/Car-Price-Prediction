@@ -7,7 +7,7 @@ workflows:
 
 import pandas as pd
 import numpy as np
-from utils import LoggerMixin
+from utils import LoggerMixin, ensure_directory
 import mlflow
 from typing import Dict, List, Any, Optional
 from pathlib import Path
@@ -15,20 +15,20 @@ from pathlib import Path
 class DescriptiveStats(LoggerMixin):
     """Class for computing descriptive statistics for EDA."""
 
-    def __init__(self, config: Dict[str, Any] ) -> None:
+    def __init__(self, config: Dict[str, Any] ):
         super().__init__()
         self.config = config
         self.logger = self.setup_class_logger('DescriptiveStats', config, 'logging')
+        self.output_dir = self.config['file_paths'].get('eda_reports', 'eda_reports/')
+        ensure_directory(self.output_dir)
 
-    def summary_numeric(self, df: pd.DataFrame, output_dir: str | Path) -> Optional[List]:
+    def summary_numeric(self, df: pd.DataFrame) -> Optional[List]:
         """Compute summary statistics for a numeric column.
 
         Args:
             df (pd.DataFrame): Input DataFrame.
-            output_dir (str | Path): Directory to save the output.
-
         Returns:
-            List of numeric columns
+            An empty list if no numeric columns are found
         """
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         if not numeric_cols:
@@ -40,8 +40,8 @@ class DescriptiveStats(LoggerMixin):
         summary_stats['skewness'] = df[numeric_cols].skew()
         summary_stats['kurtosis'] = df[numeric_cols].kurtosis()
         try:
-            output_path = Path(output_dir) / "numeric_summary_statistics.csv"
-            summary_stats.to_json(output_path)
+            output_path = f"{self.output_dir}/numeric_summary_statistics.json"
+            summary_stats.to_json(output_path, indent=4)
             self.logger.info(f"Numeric summary statistics saved to {output_path}")
         except Exception as e:
             self.logger.error(f"Error saving numeric summary statistics: {e}")
@@ -50,16 +50,15 @@ class DescriptiveStats(LoggerMixin):
         mlflow.log_artifact(str(output_path))
         mlflow.set_tag("mlflow.note.content",
                 f"Numeric summary statistics computed for {len(numeric_cols)} columns. - See artifact: {output_path}")
-        return numeric_cols
+        
 
-    def summary_categorical(self, df: pd.DataFrame, output_dir: str | Path) -> Optional[List]:
+    def summary_categorical(self, df: pd.DataFrame) -> Optional[List]:
         """Compute summary statistics for a categorical column.
 
         Args:
             df (pd.DataFrame): Input DataFrame.
-            output_dir (str | Path): Directory to save the output.
         Returns:
-            List of categorical columns
+            An empty list if no categorical columns are found
         """
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         if not categorical_cols:
@@ -67,15 +66,15 @@ class DescriptiveStats(LoggerMixin):
             return []
 
         try:
-            output_path = Path(output_dir) / "categorical_summary_statistics.json"
-            df.describe(exclude=[np.number]).T.to_json(output_path)
+            output_path = f"{self.output_dir}/categorical_summary_statistics.json"
+            df.describe(exclude=[np.number]).T.to_json(output_path, indent=4)
             self.logger.info(f"Categorical summary statistics saved to {output_path}")
         except Exception as e:
             self.logger.error(f"Error saving categorical summary statistics: {e}")
             raise e
 
         mlflow.log_artifact(str(output_path))
-        mlflow.note.content("mlflow.note.content",
+        mlflow.set_tag("mlflow.note.content",
                 f"Categorical summary statistics computed for {len(categorical_cols)} columns. - See artifact: {output_path}")
-       
+
     

@@ -23,8 +23,9 @@ class EDAVisualizer(LoggerMixin):
         super().__init__()
         self.config = config
         self.logger = self.setup_class_logger("EDAVisualizer", config, "logging")
-        self.ouput_dir = Path(config['file_paths'].get("figures_dir", "eda_plots"))
-        ensure_directory(self.ouput_dir)
+        self.output_dir = Path(config['file_paths'].get("figures_dir", "eda_plots"))
+        self.save_plots = config['visualization'].get('save_plots', True)
+        ensure_directory(self.output_dir)
         
 
     def plot_numeric_distribution(self, df: pd.DataFrame) -> None:
@@ -42,7 +43,7 @@ class EDAVisualizer(LoggerMixin):
 
         n_cols = len(numeric_cols)
         n_rows = (n_cols + 2) // 3
-        fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5 * n_rows))
+        fig, axes = plt.subplots(n_rows, 3, figsize=(15, 7 * n_rows))
         axes = axes.flatten() if n_cols > 1 else [axes] 
 
         for idx, col in enumerate(numeric_cols):
@@ -71,8 +72,7 @@ class EDAVisualizer(LoggerMixin):
         
         if self.save_plots:
             output_file = self.output_dir / 'numeric_distributions.png'
-            dpi = self.config['output'].get('plot_dpi', 300)
-            plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
+            plt.savefig(output_file, dpi=300, bbox_inches='tight')
             mlflow.log_artifact(output_file)
             plt.close(fig)
             self.logger.info(f'✓ Saved: {output_file}')
@@ -87,16 +87,18 @@ class EDAVisualizer(LoggerMixin):
             df (pd.DataFrame): Input dataframe.
         """
         categorical_cols = df.select_dtypes(include='object').columns.tolist()
-        if not categorical_cols:
+        columns_to_exclude = self.config['visualization']['countplot'].get('columns_to_exclude')
+        columns_to_plot = [col for col in categorical_cols if col not in columns_to_exclude]
+        if not columns_to_plot:
             self.logger.warning("No categorical columns found.")
             return
 
-        n_cols = len(categorical_cols)
+        n_cols = len(columns_to_plot)
         n_rows = (n_cols + 2) // 3
-        fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5 * n_rows))
+        fig, axes = plt.subplots(n_rows, 3, figsize=(15, 7 * n_rows))
         axes = axes.flatten() if n_cols > 1 else [axes] 
 
-        for idx, col in enumerate(categorical_cols):
+        for idx, col in enumerate(columns_to_plot):
             try:
                 sns.countplot(
                     data=df,
@@ -121,8 +123,8 @@ class EDAVisualizer(LoggerMixin):
         
         if self.save_plots:
             output_file = self.output_dir / 'categorical_counts.png'
-            dpi = self.config['output'].get('plot_dpi', 300)
-            plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
+
+            plt.savefig(output_file, dpi=300, bbox_inches='tight')
             mlflow.log_artifact(output_file)
             plt.close(fig)
             self.logger.info(f'✓ Saved: {output_file}')
@@ -158,8 +160,8 @@ class EDAVisualizer(LoggerMixin):
         
         if self.save_plots:
             output_file = self.output_dir / 'correlation_heatmap.png'
-            dpi = self.config['output'].get('plot_dpi', 300)
-            plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
+
+            plt.savefig(output_file, dpi=300, bbox_inches='tight')
             mlflow.log_artifact(output_file)
             plt.close()
             self.logger.info(f'✓ Saved: {output_file}')
@@ -180,16 +182,16 @@ class EDAVisualizer(LoggerMixin):
 
         n_cols = len(numeric_cols)
         n_rows = (n_cols + 2) // 3
-        fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5 * n_rows))
+        fig, axes = plt.subplots(n_rows, 3, figsize=(15, 7 * n_rows))
         axes = axes.flatten() if n_cols > 1 else [axes] 
 
         for idx, col in enumerate(numeric_cols):
             try:
                 sns.boxplot(
                     data=df,
-                    x=col,
+                    y=col,
                     ax=axes[idx],
-                    color='lightblue',
+                    color='green',
                 )
                 axes[idx].set_title(f'Box Plot of {col}', fontweight='bold')
                 axes[idx].grid(True, alpha=0.3)
@@ -206,8 +208,8 @@ class EDAVisualizer(LoggerMixin):
         
         if self.save_plots:
             output_file = self.output_dir / 'box_plots.png'
-            dpi = self.config['output'].get('plot_dpi', 300)
-            plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
+
+            plt.savefig(output_file, dpi=300, bbox_inches='tight')
             mlflow.log_artifact(output_file)
             plt.close(fig)
             self.logger.info(f'✓ Saved: {output_file}')
@@ -252,8 +254,8 @@ class EDAVisualizer(LoggerMixin):
         
         if self.save_plots:
             output_file = self.output_dir / 'scatter_plots.png'
-            dpi = self.config['output'].get('plot_dpi', 300)
-            plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
+
+            plt.savefig(output_file, dpi=300, bbox_inches='tight')
             mlflow.log_artifact(output_file)
             plt.close(fig)
             self.logger.info(f'✓ Saved: {output_file}')

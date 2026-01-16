@@ -19,14 +19,11 @@ logging:
   log_file: logs/eda.log
 
 visualization:
-  histograms:
-    bins: 30
-    figsize: [10, 6]
-  scatter_plots:
-    figsize: [10, 6]
-  correlation_heatmap:
-    figsize: [12, 8]
-    cmap: 'coolwarm'
+  save_plots: true
+  countplot:
+    columns_to_exclude:
+    - name
+    - torque
 
 data_quality_checks:
   missing:
@@ -56,9 +53,8 @@ data_quality_checks:
     - torque
     - seats
 
-  target_variable:
-    name: selling_price
-    type: numerical
+  target_variable: 'selling_price'
+
 
   inference:
     enabled: true
