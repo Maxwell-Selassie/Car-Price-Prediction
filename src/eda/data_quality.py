@@ -25,7 +25,7 @@ class DataQualityChecker(LoggerMixin):
         super().__init__()
         self.config = config
         self.logger = self.setup_class_logger("DataQualityChecker", config, "logging")
-        self.output_dir = config["file_paths"].get("eda_reports", "data_quality_reports")
+        self.output_dir = Path(config["file_paths"].get("eda_reports", "data_quality_reports"))
         ensure_directory(self.output_dir)
         self.validation: Dict[str, Any] = {}
 
