@@ -1,0 +1,84 @@
+# Preprocessing configuration file
+# This file defines the preprocessing steps to be applied to the dataset and provide 
+# a centralized location for managing preprocessing parameters along with eda evidence 
+# to support the choices made.
+
+# Project Name: Car Price Prediction Model
+# Author : Maxwell Selassie Hiamatsu
+# Created On: 2026-01-18
+# Description: This project aims to build a machine learning model to predict car prices based on various features.
+
+file_paths:
+  raw_data: data/car_details.csv
+  splits:
+    train: data/splits/train.csv
+    test: data/splits/test.csv
+    validation: data/splits/validation.csv
+
+data_splits:
+  dev_set_size: 1500
+  test_set_size: 1000
+
+  processed:
+    train: data/processed/train_processed.csv
+    test: data/processed/test_processed.csv
+    validation: data/processed/validation_processed.csv
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  log_file: logs/preprocessing.log
+
+
+preprocessing_steps:
+  missing_values:
+    enabled: true
+    numeric:
+      strategy: 'drop' # options: 'mean', 'median', 'drop'
+      eda_evidence: 'Numerical columns had less than 5% missing values; rows with missing values were dropped to maintain data integrity.'
+    categorical:
+      strategy: 'drop' # options: 'mode', 'constant', 'drop'
+      eda_evidence: 'Categorical columns had minimal missing values; rows with missing values were dropped to avoid introducing bias.'
+
+  duplicates:
+    enabled: true
+    strategy: 'remove' # options: 'remove', 'keep'
+    eda_evidence: 'Duplicate records were found and removed to ensure data quality.'
+
+  transformations:
+    log_transform:
+      columns:
+        - selling_price
+        - km_driven
+        - max_power
+      eda_evidence: 'Log transformation was applied to selling_price and km_driven to reduce right skewness observed in their distributions during EDA.'
+    
+    sqrt_transform:
+      columns:
+        - engine
+      eda_evidence: 'Square root transformation was applied to engine to moderate skewness and stabilize variance as indicated by EDA findings.'
+
+  encoding:
+    categorical_columns:
+      - fuel
+      - seller_type
+      - transmission
+      - owner
+    strategy: 'one_hot' # options: 'one_hot', 'label_encoding'
+    eda_evidence: 'One-hot encoding was chosen for categorical variables to avoid ordinal relationships, as these features are nominal in nature.'
+
+  scaling:
+    columns: 'all' # options: 'all', list of specific columns
+    strategy: 'standardization' # options: 'normalization', 'standardization'
+    eda_evidence: 'Standardization was applied to numerical features to ensure they have a mean of 0 and standard deviation of 1, facilitating model convergence.'
+
+notes: |
+  This configuration file outlines the preprocessing steps for the car price prediction dataset.
+  Each step is supported by evidence gathered during the exploratory data analysis (EDA) phase to justify the choices made.
+limitations: |
+  While the preprocessing steps are designed to enhance model performance, they may not address all potential data issues.
+  Future iterations may require additional preprocessing based on model feedback and further data exploration.
+  The log transformation may not be suitable for all models, and alternative transformations should be considered if necessary.
+  The removal of rows with missing values may lead to loss of potentially valuable information; alternative imputation methods could be explored in future work.
+  One-hot encoding increases dimensionality, which may impact model performance; dimensionality reduction techniques could be considered if needed.
+  The last captured year in the dataset is 2020; any cars manufactured after this year are not represented in the data and may affect model generalizability.
