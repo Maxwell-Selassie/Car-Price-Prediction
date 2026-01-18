@@ -14,6 +14,86 @@ Train size = Remaining samples
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from typing import Tuple
+from typing import Tuple, Dict, Any
 from utils import LoggerMixin
 from pathlib import Path
+import mlflow
+
+class DataSplitter(LoggerMixin):
+    """Class for splitting data into training, development and testing sets."""
+
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__()
+        self.config = config
+        self.logger = self.setup_class_logger('DataSplitter',config,'logging')
+        self.test_size = config['data_splits']['test_set_size']
+        self.dev_size = config['data_splits']['dev_set_size']
+
+    def split_data(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Splits the data into train, dev and test sets.
+
+        Args:
+            data (pd.DataFrame): The input dataframe to be split.
+        Returns:
+            Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: The train, dev and test dataframes.
+        """
+        try:
+            self.logger.info("Starting data split process...")
+            # First split off the test set
+            train_dev_data, test_data = train_test_split(
+                data, test_size=self.test_size, random_state=42
+            )
+            test_dataset = mlflow.data.from_pandas(
+                test_data, name='car_details_test_dataset', source='data_splitter.py'
+            )
+            # Then split the remaining data into train and dev sets
+            train_data, dev_data = train_test_split(
+                train_dev_data, test_size=self.dev_size, random_state=42
+            )
+            train_dataset = mlflow.data.from_pandas(
+                train_data, name='car_details_train_dataset', source='data_splitter.py'
+            )
+            dev_dataset = mlflow.data.from_pandas(
+                dev_data, name='car_details_dev_dataset', source='data_splitter.py'
+            )
+            self.logger.info("Data split completed successfully.")
+            self.split_results = {
+                "train": train_data,
+                "dev": dev_data,
+                "test": test_data
+            }
+            # log sizes to mlflow
+            mlflow.log_params({
+                'train_size' : len(train_data),
+                'dev_size' : len(dev_data),
+                'test_size' : len(test_data)
+            })
+
+            # log datasets to mlflow
+            mlflow.log_input(train_dataset, context='training')
+            mlflow.log_input(dev_dataset, context='development')
+            mlflow.log_input(test_dataset, context='testing')
+
+            return train_data, dev_data, test_data
+        
+        except Exception as e:
+            self.logger.error(f"Error during data split: {e}")
+            raise
+
+    def validate_splits(self) -> None:
+        """Validates that the splits do not overlap and sizes are correct."""
+        train_data = self.split_results['train']
+        dev_data = self.split_results['dev']
+        test_data = self.split_results['test']
+
+        # Check for overlaps
+        assert train_data.index.isin(dev_data.index).sum() == 0, "Train and Dev sets overlap!"
+        assert train_data.index.isin(test_data.index).sum() == 0, "Train and Test sets overlap!"
+        assert dev_data.index.isin(test_data.index).sum() == 0, "Dev and Test sets overlap!"
+
+        # Check sizes
+        total_size = len(train_data) + len(dev_data) + len(test_data)
+        original_size = len(train_data) + len(dev_data) + len(test_data)
+        assert total_size == original_size, "Total size of splits does not match original data size!"
+
+        self.logger.info("Data splits validated successfully. No overlaps and sizes are correct.")
