@@ -19,6 +19,7 @@ import numpy as np
 from typing import Dict, List, Any
 from utils import LoggerMixin
 import json
+import mlflow
 
 class DataCleaner(LoggerMixin):
     """Class for cleaning and preprocessing the car details dataset."""
@@ -190,6 +191,8 @@ class DataCleaner(LoggerMixin):
         try:
             with open(report_path, 'w') as f:
                 json.dump(self.cleaning_results, f, indent=4)
+
+            mlflow.log_artifact(report_path)
             self.logger.info(f"Cleaning report saved to {report_path}.")
         except Exception as e:
             self.logger.error(f"Error saving cleaning report: {e}")

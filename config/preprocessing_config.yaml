@@ -63,11 +63,13 @@ preprocessing_steps:
         - selling_price
         - km_driven
         - max_power
+      drop_original: true
       eda_evidence: 'Log transformation was applied to selling_price and km_driven to reduce right skewness observed in their distributions during EDA.'
     
     sqrt_transform:
       columns:
         - engine
+      drop_original: true
       eda_evidence: 'Square root transformation was applied to engine to moderate skewness and stabilize variance as indicated by EDA findings.'
 
   encoding:
