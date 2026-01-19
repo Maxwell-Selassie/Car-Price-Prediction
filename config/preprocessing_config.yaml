@@ -29,6 +29,20 @@ logging:
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
   log_file: logs/preprocessing.log
 
+dtype_corrections:
+  convert_to_category:
+    - fuel
+    - seller_type
+    - transmission
+    - owner
+
+extract_age:
+  from_column: year
+  new_column: age
+
+drop_columns:
+  - name
+  - torque
 
 preprocessing_steps:
   missing_values:
