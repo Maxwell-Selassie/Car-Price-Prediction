@@ -7,6 +7,10 @@ Workflow:
 2. Define functions for data type corrections.
 3. Define functions for missing value handling.
 4. Define functions for duplicate removal.
+5. Extract age from year column.
+6. Drop columns not needed for modeling.
+7. Save a report of cleaning steps taken.
+8. Define a main cleaning function to apply all steps in sequence.
 """
 
 # import necessary libraries
@@ -132,6 +136,51 @@ class DataCleaner(LoggerMixin):
             self.logger.error(f"Error during duplicate removal: {e}")
             raise e
         
+    def extract_age_from_year(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Extracts age from the year column and adds it as a new column.
+        
+        Args:
+            df (pd.DataFrame): The input DataFrame.
+        Returns:
+            pd.DataFrame: DataFrame with age column added.
+        """
+        if 'year' not in df.columns:
+            self.logger.error("Column 'year' not found in DataFrame.")
+            raise ValueError("Column 'year' must be present in the DataFrame to extract age.")
+        try:
+            max_year_in_data = df['year'].max()
+            df['age'] = max_year_in_data - df['year']
+            self.logger.info("Extracted age from year and added as new column 'age'.")
+            self.cleaning_results['extract_age'] = "Extracted age from year column."
+            return df
+        except Exception as e:
+            self.logger.error(f"Error extracting age from year: {e}")
+            raise e
+        
+    def drop_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Drops specified columns from the DataFrame.
+        
+        Args:
+            df (pd.DataFrame): The input DataFrame.
+        Returns:
+            pd.DataFrame: DataFrame with specified columns dropped.
+        """ 
+        if 'drop_columns' not in self.config:
+            self.logger.warning("No columns specified to drop in config.")
+            return df
+        
+        columns_to_drop = self.config['drop_columns']
+        try:
+            df = df.drop(columns=columns_to_drop, errors='ignore')
+            self.logger.info(f"Dropped columns: {columns_to_drop}.")
+            self.cleaning_results['drop_columns'] = f"Dropped columns: {columns_to_drop}"
+            return df
+        
+        except Exception as e:
+            self.logger.error(f"Error dropping columns: {e}")
+            raise e
+
+        
     def save_cleaning_report(self, report_path: str) -> None:
         """Saves the cleaning report to a specified json file path.
         
@@ -147,7 +196,7 @@ class DataCleaner(LoggerMixin):
             raise e
         
         
-    def clean_data(self, df: pd.DataFrame, report_path: str) -> pd.DataFrame:
+    def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Cleans the data by applying all preprocessing steps in sequence.
         
         Args:
@@ -161,6 +210,8 @@ class DataCleaner(LoggerMixin):
         df = self.correct_data_types(df)
         df = self.handle_missing_values(df)
         df = self.remove_duplicates(df)
-        self.save_cleaning_report(report_path)
+        df = self.extract_age_from_year(df)
+        df = self.drop_columns(df)
+        self.cleaning_results['final_shape_after_cleaning'] = df.shape
         self.logger.info("Data cleaning process completed.")
         return df   
