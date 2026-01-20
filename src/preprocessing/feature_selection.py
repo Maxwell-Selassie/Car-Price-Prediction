@@ -7,6 +7,7 @@ Workflow:
 6. Save selected features list as a json file
 6. Log artifacts using mlflow."""
 
+import shutil
 import pandas as pd
 from sklearn.feature_selection import RFECV
 from typing import List, Dict, Any
@@ -16,6 +17,7 @@ from utils import LoggerMixin, ensure_directory
 import joblib
 import json
 import mlflow
+from pathlib import Path
 
 class FeatureSelector(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):
@@ -60,8 +62,14 @@ class FeatureSelector(LoggerMixin):
         Args:
             path (str): The path to save the selector file.
         """
-        path = self.config['save_artifacts'].get('selection_path', 'artifacts/feature_selection/rfecv_selector.joblib')
-        ensure_directory(path)
+        output_dir = self.config['save_artifacts'].get('feature_selection_path', 'artifacts/feature_selection/')
+        path = Path(output_dir) / "rfecv_selector.joblib"
+
+        if path.is_dir():
+            shutil.rmtree(path)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         joblib.dump(self.selector, path)
         mlflow.log_artifact(path)
         self.logger.info(f"Feature selector saved at {path}.")
@@ -102,8 +110,13 @@ class FeatureSelector(LoggerMixin):
             X (pd.DataFrame): The input features dataframe.
         """
         selected_feature_names = self.selected_features(X)
-        path = self.config['save_artifacts'].get('selected_features_path', 'artifacts/feature_selection/selected_features.json')
-        ensure_directory(path)
+        output_dir = self.config['save_artifacts'].get('feature_selection_path', 'artifacts/feature_selection/')
+        path = Path(output_dir) / "selected_feature_names.json"
+
+        if path.is_dir():
+            shutil.rmtree(path)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as f:
             json.dump(selected_feature_names, f)
         mlflow.log_artifact(path)

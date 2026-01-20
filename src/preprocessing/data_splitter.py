@@ -18,6 +18,7 @@ from typing import Tuple, Dict, Any
 from utils import LoggerMixin
 from pathlib import Path
 import mlflow
+import shutil
 
 class DataSplitter(LoggerMixin):
     """Class for splitting data into training, development and testing sets."""
@@ -97,3 +98,43 @@ class DataSplitter(LoggerMixin):
         assert total_size == original_size, f"Total size {total_size} != original size {original_size}!"
         
         self.logger.info("Data splits validated successfully. No overlaps.")
+
+    def save_splits(self, version: int = 1) -> None:
+        """Saves the split datasets to CSV files.
+        """
+        train_data = self.split_results['train']
+        dev_data = self.split_results['dev']
+        test_data = self.split_results['test']
+
+        train_path = self.ensure_paths(f'train_data_v{version}.csv')
+        dev_path = self.ensure_paths(f"dev_data_v{version}.csv")
+        test_path = self.ensure_paths(f"test_data_v{version}.csv")
+
+        train_data.to_csv(train_path, index=False)
+        dev_data.to_csv(dev_path, index=False)
+        test_data.to_csv(test_path, index=False)
+
+        mlflow.log_artifact(str(train_path))
+        mlflow.log_artifact(str(dev_path))
+        mlflow.log_artifact(str(test_path))
+
+        self.logger.info(f"Train, Dev and Test datasets saved to {train_path.parent}")
+
+    def ensure_paths(self, name: str) -> Path:
+        """Ensure all directories are properly created
+        
+        Args:
+            output_dir(str) : File directory
+            name(str) : Name of file
+            
+        Returns:
+            A filepath
+        """
+        output_dir = self.config['file_paths'].get('splits','data/splits/')
+
+        file_path = Path(output_dir) / f"{name}"
+        if file_path.is_dir():
+            shutil.rmtree(file_path)
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        return file_path

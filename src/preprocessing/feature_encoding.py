@@ -11,8 +11,9 @@ Workflow:
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 from typing import List, Dict, Any, Optional
-import numpy as np
-from utils import LoggerMixin, ensure_directory
+from pathlib import Path
+from utils import LoggerMixin
+import shutil
 import joblib
 import mlflow
 
@@ -21,7 +22,7 @@ class FeatureEncoder(LoggerMixin):
         super().__init__()
         self.config = config
         self.logger = self.setup_class_logger("FeatureEncoder", config, "logging")
-        self.encoder = Optional[OneHotEncoder] = None
+        self.encoder : Optional[OneHotEncoder] = None
 
     def fit(self, df: pd.DataFrame) -> None:
         """Fit the OneHotEncoder on the categorical columns.
@@ -74,12 +75,18 @@ class FeatureEncoder(LoggerMixin):
         self.fit(df)
         return self.transform(df)
 
-    def save_encoder(self):
+    def save_encoder(self, version: int = 1):
         """Save the fitted encoder to a joblib file and log it as an MLflow artifact."""
-        file_path = self.config['save_artifacts'].get('encoder_path', 'artifacts/encoders/one_hot_encoder.joblib')
-        ensure_directory(file_path)
+        output_dir = self.config['save_artifacts'].get('encoder_path', 'artifacts/encoders')
+        file_path = Path(f"{output_dir}/one_hot_encoder_v{version}.joblib")
+        
+        if file_path.is_dir():
+            shutil.rmtree(file_path)
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
         joblib.dump(self.encoder, file_path)
-        mlflow.log_artifact(file_path, artifact_path="feature_encoding")
+        mlflow.log_artifact(file_path)
 
         self.logger.info(f"Encoder saved and logged to MLflow at {file_path}")
 

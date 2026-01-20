@@ -14,6 +14,8 @@ Workflow:
 """
 
 # import necessary libraries
+from pathlib import Path
+import shutil
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Any
@@ -186,8 +188,14 @@ class DataCleaner(LoggerMixin):
         """Saves the cleaning report to a specified json file path.
         """
         try:
-            report_path = self.config['save_artifacts'].get('cleaning_report', 'artifacts/reports/cleaning_report.json')
-            ensure_directory(report_path)
+            ouptut_dir = self.config['save_artifacts'].get('report_path', 'artifacts/reports/')
+            report_path = Path(ouptut_dir) / 'cleaning_report.json'
+
+            if report_path.is_dir():
+                shutil.rmtree(report_path)
+
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            
             with open(report_path, 'w') as f:
                 json.dump(self.cleaning_results, f, indent=4)
 

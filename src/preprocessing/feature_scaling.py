@@ -13,14 +13,16 @@ from sklearn.preprocessing import StandardScaler
 from typing import List, Dict, Any ,Optional
 import numpy as np
 from utils import LoggerMixin
+import shutil
 import joblib
 import mlflow
+from pathlib import Path
 
 class FeatureScaler(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         self.config = config
-        self.scaler = Optional[StandardScaler] = None
+        self.scaler : Optional[StandardScaler] = None
         self.logger = self.setup_class_logger("FeatureScaler", config, "logging")
 
     def fit(self, df: pd.DataFrame, numerical_columns: List[str]) -> None:
@@ -67,11 +69,17 @@ class FeatureScaler(LoggerMixin):
         self.fit(df, numerical_columns)
         return self.transform(df, numerical_columns)
     
-    def save_scaler(self) -> None:
+    def save_scaler(self, version: int = 1) -> None:
         """Save the fitted scaler to a joblib file and log as mlflow artifact.
 
         """
-        file_path = self.config['save_artifacts'].get('scaler_path', 'artifacts/scalers/standard_scaler.joblib')
+        ouput_dir = Path(self.config['save_artifacts'].get('scaler_path', 'artifacts/scalers/'))
+        file_path = Path(ouput_dir) / f"standard_scaler_v{version}.joblib"
+
+        if file_path.is_dir():
+            shutil.rmtree(file_path)
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(self.scaler, file_path)
         mlflow.log_artifact(file_path)
         self.logger.info(f"Scaler saved and logged to MLflow at {file_path}")

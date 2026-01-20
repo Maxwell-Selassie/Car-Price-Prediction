@@ -9,11 +9,13 @@ Workflow:
 """
 
 import json
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from typing import Dict, Any
 from utils import LoggerMixin
 from utils.io_utils import ensure_directory
+import shutil
 
 class FeatureTransformer(LoggerMixin):
     """Class for transforming features in the dataset."""
@@ -125,13 +127,19 @@ class FeatureTransformer(LoggerMixin):
             self.logger.error(f"Error during feature transformation: {e}")
             raise e
 
-    def save_transformation_report(self) -> None:
+    def save_transformation_report(self, version: int = 1) -> None:
         """Saves the transformation results to a specified path.
 
         """
         try:
-            report_path = self.config['save_artifacts'].get('transformation_report', 'artifacts/reports/transformation_report.json')
-            ensure_directory(report_path)
+            output_dir = self.config['save_artifacts'].get('transformation_report', 'artifacts/reports/')
+            report_path = Path(output_dir) / f"feature_transformations_v{version}.json"
+
+            if report_path.is_dir():
+                shutil.rmtree(report_path)
+
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            
             with open(report_path, 'w') as f:
                 json.dump(self.transformation_result, f, indent=4)
             self.logger.info(f"Transformation report saved to {report_path}.")
