@@ -35,7 +35,7 @@ class FeatureEncoder(LoggerMixin):
         categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
         self.encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
         self.encoder.fit(df[categorical_columns])
-        self.save_encoder(self.config['encoding']['artifact_dir'] + "artifacts/one_hot_encoder.joblib")
+        self.save_encoder()
         self.logger.info("OneHotEncoder fitted and saved.")
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -71,9 +71,8 @@ class FeatureEncoder(LoggerMixin):
         Returns:
             pd.DataFrame: The transformed dataframe.
         """
-        categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        self.fit(df, categorical_columns)
-        return self.transform(df, categorical_columns)
+        self.fit(df)
+        return self.transform(df)
 
     def save_encoder(self):
         """Save the fitted encoder to a joblib file and log it as an MLflow artifact."""

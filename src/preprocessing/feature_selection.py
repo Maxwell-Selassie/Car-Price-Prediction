@@ -101,7 +101,7 @@ class FeatureSelector(LoggerMixin):
         Args:
             X (pd.DataFrame): The input features dataframe.
         """
-        selected_feature_names = self.extract_selected_feature_names(X)
+        selected_feature_names = self.selected_features(X)
         path = self.config['save_artifacts'].get('selected_features_path', 'artifacts/feature_selection/selected_features.json')
         ensure_directory(path)
         with open(path, 'w') as f:

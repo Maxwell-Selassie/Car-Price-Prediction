@@ -35,7 +35,7 @@ class FeatureScaler(LoggerMixin):
         """
         self.scaler = StandardScaler()
         self.scaler.fit(df[numerical_columns])
-        self.save_scaler(self.config['scaling']['artifact_dir'] + "artifacts/standard_scaler.joblib")
+        self.save_scaler()
         self.logger.info("StandardScaler fitted and saved.")
 
     def transform(self, df: pd.DataFrame, numerical_columns: List[str]) -> pd.DataFrame:
