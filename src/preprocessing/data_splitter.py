@@ -80,7 +80,7 @@ class DataSplitter(LoggerMixin):
             self.logger.error(f"Error during data split: {e}")
             raise
 
-    def validate_splits(self) -> None:
+    def validate_splits(self, original_df: pd.DataFrame) -> None:
         """Validates that the splits do not overlap and sizes are correct."""
         train_data = self.split_results['train']
         dev_data = self.split_results['dev']
@@ -93,7 +93,7 @@ class DataSplitter(LoggerMixin):
 
         # Check sizes
         total_size = len(train_data) + len(dev_data) + len(test_data)
-        original_size = len(train_data) + len(dev_data) + len(test_data)
-        assert total_size == original_size, "Total size of splits does not match original data size!"
-
-        self.logger.info("Data splits validated successfully. No overlaps and sizes are correct.")
+        original_size = len(original_df)
+        assert total_size == original_size, f"Total size {total_size} != original size {original_size}!"
+        
+        self.logger.info("Data splits validated successfully. No overlaps.")

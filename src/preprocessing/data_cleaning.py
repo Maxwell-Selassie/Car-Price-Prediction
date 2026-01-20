@@ -17,7 +17,7 @@ Workflow:
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Any
-from utils import LoggerMixin
+from utils import LoggerMixin, ensure_directory
 import json
 import mlflow
 
@@ -25,7 +25,7 @@ class DataCleaner(LoggerMixin):
     """Class for cleaning and preprocessing the car details dataset."""
     
     def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
+        super().__init__()
         self.config = config
         self.logger = self.setup_class_logger('DataCleaner',config,'logging')
         self.cleaning_results = {}
@@ -56,7 +56,7 @@ class DataCleaner(LoggerMixin):
                 else:
                     self.logger.warning(f"Column {column} not found in DataFrame for dtype conversion.")
 
-                self.cleaning_results['dtype_corrections'] = f"Converted columns to category: {convert_to_category}"
+            self.cleaning_results['dtype_corrections'] = f"Converted columns to category: {convert_to_category}"
             return df
         
         except Exception as e:
@@ -74,7 +74,7 @@ class DataCleaner(LoggerMixin):
         Returns:
             pd.DataFrame: DataFrame with missing values handled.
         """
-        if not 'preprocessing_steps' in self.config and 'missing_values' not in self.config['preprocessing_steps']:
+        if not 'preprocessing_steps' in self.config or 'missing_values' not in self.config['preprocessing_steps']:
             self.logger.warning("Missing value handling not specified in preprocessing steps.")
             raise ValueError("Missing value handling not specified in preprocessing steps.")
         
@@ -113,7 +113,7 @@ class DataCleaner(LoggerMixin):
         Returns:
             pd.DataFrame: DataFrame with duplicates removed.
         """
-        if not 'preprocessing_steps' in self.config and 'duplicates' not in self.config['preprocessing_steps']:
+        if not 'preprocessing_steps' in self.config or 'duplicates' not in self.config['preprocessing_steps']:
             self.logger.warning("Duplicate removal not specified in preprocessing steps.")
             raise ValueError("Duplicate removal not specified in preprocessing steps.")
         
@@ -182,13 +182,12 @@ class DataCleaner(LoggerMixin):
             raise e
 
         
-    def save_cleaning_report(self, report_path: str) -> None:
+    def save_cleaning_report(self) -> None:
         """Saves the cleaning report to a specified json file path.
-        
-        Args:
-            report_path (str): The file path to save the cleaning report.
         """
         try:
+            report_path = self.config['save_artifacts'].get('cleaning_report', 'artifacts/reports/cleaning_report.json')
+            ensure_directory(report_path)
             with open(report_path, 'w') as f:
                 json.dump(self.cleaning_results, f, indent=4)
 
@@ -204,7 +203,6 @@ class DataCleaner(LoggerMixin):
         
         Args:
             df (pd.DataFrame): The input DataFrame.
-            report_path (str): The file path to save the cleaning report.
 
         Returns:
             pd.DataFrame: Cleaned DataFrame.

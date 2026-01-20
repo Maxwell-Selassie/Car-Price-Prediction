@@ -42,6 +42,7 @@ drop_columns:
   - torque
   - year
 
+
 preprocessing_steps:
   missing_values:
     enabled: true
@@ -86,6 +87,13 @@ preprocessing_steps:
     strategy: 'standardization' # options: 'normalization', 'standardization'
     eda_evidence: 'Standardization was applied to numerical features to ensure they have a mean of 0 and standard deviation of 1, facilitating model convergence.'
 
+save_artifacts:
+  encoder_path: artifacts/encoders/one_hot_encoder.joblib
+  scaler_path: artifacts/scalers/standard_scaler.joblib
+  selection_path: artifacts/feature_selection/selected_features.joblib
+  selected_feature_names: artifacts/feature_selection/selected_feature_names.json
+  cleaning_report: artifacts/reports/cleaning_report.json
+  transformation_report: artifacts/reports/transformation_report.json
 notes: |
   This configuration file outlines the preprocessing steps for the car price prediction dataset.
   Each step is supported by evidence gathered during the exploratory data analysis (EDA) phase to justify the choices made.

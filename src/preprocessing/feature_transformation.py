@@ -13,12 +13,13 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any
 from utils import LoggerMixin
+from utils.io_utils import ensure_directory
 
 class FeatureTransformer(LoggerMixin):
     """Class for transforming features in the dataset."""
     
     def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
+        super().__init__()
         self.config = config
         self.logger = self.setup_class_logger('FeatureTransformer', config, 'logging')
         self.transformation_result = {}
@@ -36,7 +37,7 @@ class FeatureTransformer(LoggerMixin):
             self.logger.error("Input DataFrame is None.")
             raise ValueError("Input DataFrame cannot be None.")
         
-        if not 'preprocessing_steps' in self.config and 'transformation' not in self.config['preprocessing_steps'] and 'log_transform' not in self.config['preprocessing_steps']['transformation']:
+        if not 'preprocessing_steps' in self.config or 'transformation' not in self.config['preprocessing_steps'] or 'log_transform' not in self.config['preprocessing_steps']['transformation']:
             self.logger.info("Log transformation not specified in config. Skipping.")
             return df
         
@@ -72,7 +73,7 @@ class FeatureTransformer(LoggerMixin):
             self.logger.error("Input DataFrame is None")
             raise ValueError("Input DataFrame cannot be None")
         
-        if not 'preprocessing_steps' in self.config and 'transformation' not in self.config['preprocessing_steps'] and 'sqrt_transform' not in self.config['preprocessing_steps']['transformation']:
+        if not 'preprocessing_steps' in self.config or 'transformation' not in self.config['preprocessing_steps'] or 'sqrt_transform' not in self.config['preprocessing_steps']['transformation']:
             self.logger.info(f'Square transformations not specified in config. Skipping')
             return df
         
@@ -93,7 +94,7 @@ class FeatureTransformer(LoggerMixin):
         
         except Exception as e:
             self.logger.error(f"Error sqrt-transforming columns: {e}")
-            self.transformation_result['sqrt_tranformation'] = 'Fail'
+            self.transformation_result['sqrt_transformation'] = 'Fail'
             raise e
 
     def transform_features(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -124,16 +125,18 @@ class FeatureTransformer(LoggerMixin):
             self.logger.error(f"Error during feature transformation: {e}")
             raise e
 
-    def save_transformation_report(self, report_path: str) -> None:
+    def save_transformation_report(self) -> None:
         """Saves the transformation results to a specified path.
-        
-        Args:
-            report_path (str): The file path to save the transformation report.
+
         """
         try:
+            report_path = self.config['save_artifacts'].get('transformation_report', 'artifacts/reports/transformation_report.json')
+            ensure_directory(report_path)
             with open(report_path, 'w') as f:
                 json.dump(self.transformation_result, f, indent=4)
             self.logger.info(f"Transformation report saved to {report_path}.")
         except Exception as e:
             self.logger.error(f"Error saving transformation report: {e}")
             raise e
+        
+    

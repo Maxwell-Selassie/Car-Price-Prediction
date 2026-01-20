@@ -10,7 +10,7 @@ Workflow:
 
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from typing import List, Dict, Any 
+from typing import List, Dict, Any ,Optional
 import numpy as np
 from utils import LoggerMixin
 import joblib
@@ -20,7 +20,7 @@ class FeatureScaler(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         self.config = config
-        self.scaler = StandardScaler | None = None
+        self.scaler = Optional[StandardScaler] = None
         self.logger = self.setup_class_logger("FeatureScaler", config, "logging")
 
     def fit(self, df: pd.DataFrame, numerical_columns: List[str]) -> None:
@@ -52,9 +52,7 @@ class FeatureScaler(LoggerMixin):
             raise RuntimeError("Scaler has not been fitted yet.")
         
         scaled_array = self.scaler.transform(df[numerical_columns])
-        scaled_df = pd.DataFrame(scaled_array, columns=numerical_columns, index=df.index)
-        
-        df.update(scaled_df)
+        df[numerical_columns] = scaled_array
         return df
     
     def fit_transform(self, df: pd.DataFrame, numerical_columns: List[str]) -> pd.DataFrame:
@@ -69,12 +67,11 @@ class FeatureScaler(LoggerMixin):
         self.fit(df, numerical_columns)
         return self.transform(df, numerical_columns)
     
-    def save_scaler(self, filepath: str) -> None:
+    def save_scaler(self) -> None:
         """Save the fitted scaler to a joblib file and log as mlflow artifact.
-        
-        Args:
-            filepath (str): The path to save the scaler.
+
         """
-        joblib.dump(self.scaler, filepath)
-        mlflow.log_artifact(filepath, artifact_path="feature_scaling")
-        self
+        file_path = self.config['save_artifacts'].get('scaler_path', 'artifacts/scalers/standard_scaler.joblib')
+        joblib.dump(self.scaler, file_path)
+        mlflow.log_artifact(file_path)
+        self.logger.info(f"Scaler saved and logged to MLflow at {file_path}")

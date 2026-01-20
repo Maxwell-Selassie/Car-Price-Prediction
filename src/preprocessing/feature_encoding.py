@@ -10,9 +10,9 @@ Workflow:
 
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
-from typing import List, Dict, Any 
+from typing import List, Dict, Any, Optional
 import numpy as np
-from utils import LoggerMixin
+from utils import LoggerMixin, ensure_directory
 import joblib
 import mlflow
 
@@ -21,29 +21,28 @@ class FeatureEncoder(LoggerMixin):
         super().__init__()
         self.config = config
         self.logger = self.setup_class_logger("FeatureEncoder", config, "logging")
-        self.encoder = OneHotEncoder | None = None
+        self.encoder = Optional[OneHotEncoder] = None
 
-    def fit(self, df: pd.DataFrame, categorical_columns: List[str]) -> None:
+    def fit(self, df: pd.DataFrame) -> None:
         """Fit the OneHotEncoder on the categorical columns.
         
         Args:
             df (pd.DataFrame): The input dataframe.
-            categorical_columns (List[str]): List of categorical column names to encode.
             
         Returns:
             None
         """
+        categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
         self.encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
         self.encoder.fit(df[categorical_columns])
         self.save_encoder(self.config['encoding']['artifact_dir'] + "artifacts/one_hot_encoder.joblib")
         self.logger.info("OneHotEncoder fitted and saved.")
 
-    def transform(self, df: pd.DataFrame, categorical_columns: List[str]) -> pd.DataFrame:
+    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """Transform the categorical columns using the fitted OneHotEncoder.
         
         Args:
             df (pd.DataFrame): The input dataframe.
-            categorical_columns (List[str]): List of categorical column names to encode.
             
         Returns:
             pd.DataFrame: The transformed dataframe."""
@@ -51,26 +50,35 @@ class FeatureEncoder(LoggerMixin):
             self.logger.error("Encoder has not been fitted yet.")
             raise RuntimeError("Encoder has not been fitted yet.")
         
+        categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        
+        missing_cols = [col for col in categorical_columns if col not in df.columns]
+        if missing_cols:
+            self.logger.error(f"The following columns are missing in the DataFrame for encoding: {missing_cols}")
+            raise ValueError(f"The following columns are missing in the DataFrame for encoding: {missing_cols}")
+        
         encoded_array = self.encoder.transform(df[categorical_columns])
         encoded_df = pd.DataFrame(encoded_array, columns=self.encoder.get_feature_names_out(categorical_columns), index=df.index)
         
         df = pd.concat([df.drop(columns=categorical_columns), encoded_df], axis=1)
         return df
     
-    def fit_transform(self, df: pd.DataFrame, categorical_columns: List[str]) -> pd.DataFrame:
+    def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Fit and transform the categorical columns using OneHotEncoder.
         Args:
             df (pd.DataFrame): The input dataframe.
-            categorical_columns (List[str]): List of categorical column names to encode.
         Returns:
             pd.DataFrame: The transformed dataframe.
         """
+        categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
         self.fit(df, categorical_columns)
         return self.transform(df, categorical_columns)
 
-    def save_encoder(self, file_path: str):
+    def save_encoder(self):
         """Save the fitted encoder to a joblib file and log it as an MLflow artifact."""
+        file_path = self.config['save_artifacts'].get('encoder_path', 'artifacts/encoders/one_hot_encoder.joblib')
+        ensure_directory(file_path)
         joblib.dump(self.encoder, file_path)
         mlflow.log_artifact(file_path, artifact_path="feature_encoding")
 
