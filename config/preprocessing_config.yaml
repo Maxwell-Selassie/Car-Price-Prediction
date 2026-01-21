@@ -19,8 +19,6 @@ data_splits:
   test_set_size: 1000
 
 
-
-
 logging:
   level: INFO
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
