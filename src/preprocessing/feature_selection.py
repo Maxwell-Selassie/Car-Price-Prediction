@@ -18,7 +18,6 @@ import joblib
 import json
 import mlflow
 from pathlib import Path
-import shutil
 
 class FeatureSelector(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):

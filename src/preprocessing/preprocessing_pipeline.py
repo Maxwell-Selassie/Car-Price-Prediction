@@ -14,6 +14,7 @@ from typing import Dict, Any, List
 import mlflow
 from pathlib import Path
 import numpy as np
+import json
 import shutil
 import warnings
 warnings.filterwarnings("ignore")
@@ -32,8 +33,8 @@ from preprocessing import (
     FeatureTransformer
 )
 
-from utils import setup_logger, read_yaml, Timer
-from eda import DataLoader
+from utils import ensure_directory, setup_logger, read_yaml, Timer
+from eda import DataLoader, DataQualityChecker
 
 
 class PreprocessingPipeline:
@@ -78,6 +79,19 @@ class PreprocessingPipeline:
                     mlflow.log_param('Original_dataset_shape', df.shape)
 
 
+            # # step 1: Data Quality Checking
+            # with mlflow.start_run(run_name="Data_Quality_Checking", nested=True):
+            #     with Timer("Data Quality Checking", self.logger):
+            #         dq_checker = DataQualityChecker(EDA_CONFIG)
+            #         dq_report = dq_checker.run_all_checks(df,
+            #                 expected_columns=EDA_CONFIG['data_quality_checks']["expected_columns"],
+            #                 target_column=EDA_CONFIG['data_quality_checks']["target_variable"],
+            #                         )
+            #         dq_checker.save_validation_report()
+                    
+
+
+
             # step 2: Data Splitter
             with mlflow.start_run(run_name="Data_Splitting", nested=True):
                 with Timer("Data Splitting", self.logger):
@@ -92,13 +106,11 @@ class PreprocessingPipeline:
                     # clean train data
                     cleaner = DataCleaner(self.config)
                     train_df = cleaner.clean_data(train_df)
-                    cleaner.save_cleaning_report(name='Train')
                     # clean dev data
                     dev_df = cleaner.clean_data(dev_df)
-                    cleaner.save_cleaning_report(name="Dev")
                     # clean test data
                     test_df = cleaner.clean_data(test_df)
-                    cleaner.save_cleaning_report(name="Test")
+                    cleaner.save_cleaning_report()
 
                     self.logger.info(f'Train set shape after cleaning: {train_df.shape}')
                     self.logger.info(f'Dev set shape after cleaning: {dev_df.shape}')
@@ -185,24 +197,17 @@ class PreprocessingPipeline:
                     y_train = train_df[self.config['target_variable']]
                     selected_features = selector.fit_transform(X_train, y_train)
                     selector.save_selected_features(X_train)
-                    
-                    # Get selected feature names
-                    selected_feature_names = selector.selected_features(X_train)
 
-                    # Convert numpy array to DataFrame with selected feature names
-                    selected_features = pd.DataFrame(selected_features, columns=selected_feature_names)
                     train_df = pd.concat([selected_features, y_train.reset_index(drop=True)], axis=1)
 
                     X_dev = dev_df.drop(columns=[self.config['target_variable']])
                     y_dev = dev_df[self.config['target_variable']]
                     selected_dev_features = selector.transform(X_dev)
-                    selected_dev_features = pd.DataFrame(selected_dev_features, columns=selected_feature_names)
                     dev_df = pd.concat([selected_dev_features, y_dev.reset_index(drop=True)], axis=1)
 
                     X_test = test_df.drop(columns=[self.config['target_variable']])
                     y_test = test_df[self.config['target_variable']]
                     selected_test_features = selector.transform(X_test)
-                    selected_test_features = pd.DataFrame(selected_test_features, columns=selected_feature_names)
                     test_df = pd.concat([selected_test_features, y_test.reset_index(drop=True)], axis=1)
 
                     self.logger.info(f'Train set shape after feature selection: {train_df.shape}')
@@ -212,9 +217,9 @@ class PreprocessingPipeline:
 
 
             # Save processed splits
-            self.save_processed_splits(train_df,name='train', version=1, context="training")
-            self.save_processed_splits(dev_df,name='dev', version=1, context="development")
-            self.save_processed_splits(test_df,name='test', version=1, context="testing")
+            self.save_processed_splits(train_df, version=1, context="training")
+            self.save_processed_splits(dev_df, version=1, context="development")
+            self.save_processed_splits(test_df, version=1, context="testing")
 
             mlflow.log_params({
                 'final_train_shape' : train_df.shape,

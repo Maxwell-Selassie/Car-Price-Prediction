@@ -73,8 +73,8 @@ class FeatureScaler(LoggerMixin):
         """Save the fitted scaler to a joblib file and log as mlflow artifact.
 
         """
-        output_dir = Path(self.config['save_artifacts'].get('scaler_path', 'artifacts/scalers/'))
-        file_path = Path(output_dir) / f"standard_scaler_v{version}.joblib"
+        ouput_dir = Path(self.config['save_artifacts'].get('scaler_path', 'artifacts/scalers/'))
+        file_path = Path(ouput_dir) / f"standard_scaler_v{version}.joblib"
 
         if file_path.is_dir():
             shutil.rmtree(file_path)
