@@ -7,6 +7,7 @@ Workflow:
 6. Save selected features list as a json file
 6. Log artifacts using mlflow."""
 
+import shutil
 import pandas as pd
 from sklearn.feature_selection import RFECV
 from typing import List, Dict, Any
@@ -16,6 +17,8 @@ from utils import LoggerMixin, ensure_directory
 import joblib
 import json
 import mlflow
+from pathlib import Path
+import shutil
 
 class FeatureSelector(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):
@@ -26,7 +29,7 @@ class FeatureSelector(LoggerMixin):
             step=1, cv=KFold(5), scoring='neg_mean_squared_error')
         self.logger = self.setup_class_logger("FeatureSelector", config, "logging")
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+    def fit(self, X: pd.DataFrame, y: pd.Series, version: int = 1) -> None:
         """Fit the RFECV selector on the features and target.
         
         Args:
@@ -40,8 +43,15 @@ class FeatureSelector(LoggerMixin):
         self.selector.fit(X, y)
         self.logger.info("Feature selection completed.")
 
+        output_dir = self.config['save_artifacts'].get('feature_selection_path','artifacts/feature_selection/')
+        file_path = Path(output_dir) / f"feature_selector_v{version}.joblib"
 
+        if file_path.is_dir():
+            shutil.rmtree(file_path)
 
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        joblib.dump(self.selector, file_path)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """Transform the input features dataframe using the fitted selector.
@@ -60,8 +70,14 @@ class FeatureSelector(LoggerMixin):
         Args:
             path (str): The path to save the selector file.
         """
-        path = self.config['save_artifacts'].get('selection_path', 'artifacts/feature_selection/rfecv_selector.joblib')
-        ensure_directory(path)
+        output_dir = self.config['save_artifacts'].get('feature_selection_path', 'artifacts/feature_selection/')
+        path = Path(output_dir) / "rfecv_selector.joblib"
+
+        if path.is_dir():
+            shutil.rmtree(path)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         joblib.dump(self.selector, path)
         mlflow.log_artifact(path)
         self.logger.info(f"Feature selector saved at {path}.")
@@ -88,10 +104,10 @@ class FeatureSelector(LoggerMixin):
             self.logger.error("Selector has not been fitted yet.")
             raise RuntimeError("Selector has not been fitted yet.")
         
-        selected_feature_names = X.columns[self.selector.support_]
+        selected_feature_names = X.columns[self.selector.support_].tolist()
         feature_ranking = pd.Series(self.selector.ranking_, index=X.columns).sort_values()
         mlflow.log_param('optimal_number_of_features', self.selector.n_features_)
-        self.logger.info(f"Selected features: {selected_feature_names.tolist()}")
+        self.logger.info(f"Selected features: {selected_feature_names}")
         self.logger.info(f"Feature ranking:\n{feature_ranking}")
         return selected_feature_names
     
@@ -102,8 +118,13 @@ class FeatureSelector(LoggerMixin):
             X (pd.DataFrame): The input features dataframe.
         """
         selected_feature_names = self.selected_features(X)
-        path = self.config['save_artifacts'].get('selected_features_path', 'artifacts/feature_selection/selected_features.json')
-        ensure_directory(path)
+        output_dir = self.config['save_artifacts'].get('feature_selection_path', 'artifacts/feature_selection/')
+        path = Path(output_dir) / "selected_feature_names.json"
+
+        if path.is_dir():
+            shutil.rmtree(path)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as f:
             json.dump(selected_feature_names, f)
         mlflow.log_artifact(path)

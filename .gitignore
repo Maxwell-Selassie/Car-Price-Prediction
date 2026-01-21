@@ -2,3 +2,4 @@
 /.env
 /logs/
 /mlruns/
+**/feature_selector_v1.joblib
