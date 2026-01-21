@@ -12,9 +12,7 @@ file_paths:
   raw_data: data/raw/car_details.csv
   processed_data: data/processed/
   splits: data/splits/
-  raw_data: data/raw/car_details.csv
-  processed_data: data/processed/
-  splits: data/splits/
+
 
 data_splits:
   dev_set_size: 1500
@@ -42,7 +40,7 @@ drop_columns:
   - year
 
 target_variable: selling_price_log
-target_variable: selling_price
+
 
 preprocessing_steps:
   missing_values:
@@ -94,10 +92,7 @@ save_artifacts:
   feature_selection_path: artifacts/feature_selection/
   report_path: artifacts/reports/
 
-  encoder_path: artifacts/encoders/
-  scaler_path: artifacts/scalers/
-  feature_selection_path: artifacts/feature_selection/
-  report_path: artifacts/reports/
+
 
 notes: |
   This configuration file outlines the preprocessing steps for the car price prediction dataset.
