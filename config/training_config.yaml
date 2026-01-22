@@ -49,6 +49,7 @@ models:
 # cross validation
 cross_validation:
   enabled: True
+  scoring: 'neg_mean_squared_error'
 
 # hyperparameter tuning
 hyperparameter_tuning:
@@ -57,9 +58,9 @@ hyperparameter_tuning:
   n_trials: 200
   cv: 10
 
-optuna: 
-  direction: 'minimize'
-  sampler: 'TPESampler'
+  optuna: 
+    direction: 'minimize'
+    sampler: 'TPESampler'
 
   # Hyperparameter search spaces
   search_spaces:
