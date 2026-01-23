@@ -64,6 +64,13 @@ baseline_models:
         subsample: 0.8
         num_leaves: 31
 
+    RandomForest:
+      params:
+        max_depth: 7
+        n_estimators: 120
+        min_samples_split: 4
+        min_samples_leaf: 3
+
 cross_validation:
   enabled: True
   n_splits: 10
@@ -75,16 +82,15 @@ hyperparameter_tuning:
   enabled: True
   direction: 'minimize'
   method: 'optuna'
-  n_trials: 500
+  n_trials: 400
   random_state: 42
   sampler: 'TPESampler'
   pruner: 'MedianPruner'
 
   search_spaces:
-    LogisticRegression:
-      C: ['log_uniform', 0.001, 100]
-      penalty: ['categorical', ['l1', 'l2']]
-      solver: ['categorical', ['liblinear', 'saga']]
+    Ridge:
+      alpha: ['log_uniform', 0.001, 3]
+      max_iter: ['int',500, 3000]
     
     RandomForest:
       n_estimators: ['int', 50, 500]
