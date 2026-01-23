@@ -1,1 +1,20 @@
-["mileage", "seats", "age", "km_driven_log", "max_power_log", "engine_sqrt", "fuel_CNG", "fuel_Diesel", "fuel_LPG", "fuel_Petrol", "seller_type_Dealer", "seller_type_Individual", "transmission_Automatic", "transmission_Manual", "owner_First Owner", "owner_Fourth & Above Owner", "owner_Second Owner", "owner_Third Owner"]
+[
+    "mileage",
+    "seats",
+    "age",
+    "km_driven_log",
+    "max_power_log",
+    "engine_sqrt",
+    "fuel_CNG",
+    "fuel_Diesel",
+    "fuel_LPG",
+    "fuel_Petrol",
+    "seller_type_Dealer",
+    "seller_type_Individual",
+    "transmission_Automatic",
+    "transmission_Manual",
+    "owner_First Owner",
+    "owner_Fourth & Above Owner",
+    "owner_Second Owner",
+    "owner_Third Owner"
+]

@@ -63,6 +63,7 @@ class EDAPipeline:
                         data_loader = DataLoader(config)
                         df = data_loader.load_dataset(data_path)
                         self.logger.info(f"Data loaded with shape: {df.shape}")
+                        self.results['data_loader'] = 'success'
 
                 # Data Quality Checks
                 with mlflow.start_run(run_name="Data_Quality_Checks", nested=True):
@@ -73,7 +74,7 @@ class EDAPipeline:
                             target_column=config['data_quality_checks']["target_variable"],
                         )
                         dq_checker.save_validation_report()
-                        self.results['data_quality'] = quality_report
+                        self.results['data_quality'] = 'success'
                         self.logger.info("Data quality checks completed")
 
                 # Descriptive Statistics
@@ -83,8 +84,8 @@ class EDAPipeline:
                         stats_report_numeric = desc_stats.summary_numeric(df)
                         stats_report_categorical = desc_stats.summary_categorical(df)
                         self.results['descriptive_statistics'] = {
-                            'numeric_stats_reports' : stats_report_numeric,
-                            'categorical_stats_reports' : stats_report_categorical
+                            'numeric_stats_reports' : 'success',
+                            'categorical_stats_reports' : 'success'
                         }
                         self.logger.info("Descriptive statistics generated")
 
@@ -93,6 +94,7 @@ class EDAPipeline:
                     with Timer('Visualizations', self.logger):
                         visualizer = EDAVisualizer(config)
                         visualizer.run_all_visualizations(df)
+                        self.results['visualizations'] = 'success'
                         self.logger.info("Visualizations generated")
                 self.logger.info("EDA Pipeline Execution Completed Successfully")
                 

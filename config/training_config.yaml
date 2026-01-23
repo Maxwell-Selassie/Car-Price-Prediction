@@ -1,0 +1,159 @@
+# Model training configuration file for car price prediction
+# project details
+
+project:
+  name: "Car Price Prediction"
+  version: "1.0.0"
+  description: "Predict the price of a car based on its features"
+  author: "Maxwell Selassie Hiamatsu"
+  email: "jmaxwellselassie2004@gmail.com"
+  license: "MIT"
+  tags: ["car", "price", "prediction"]
+  categories: ["machine learning", "data science", "artificial intelligence"]
+
+file_paths:
+  train_data: "data/processed/train_processed_v1.csv"
+  development_data: "data/processed/dev_processed_v1.csv"
+  test_data: "data/processed/test_processed_v1.csv"
+  model_artifacts: "artifacts/models/"
+  best_model_path: "artifacts/models/best_model.joblib"
+  metrics_artifacts: "artifacts/models/metrics/"
+  figures_artifacts: "artifacts/models/figures/"
+
+  target_column: 'selling_price_log'
+
+logging:
+  log_dir: "logs/"
+  log_level: "INFO"
+  max_bytes: 10485760
+  backup_count: 7
+
+learning_algorithms:
+  - 'Ridge'
+  - 'RandomForest'
+  - 'XGBoost'
+  - 'LightGBM'
+
+baseline_models:
+  enabled: True
+  models:
+    Ridge:
+      params:
+        alpha: 0.3
+        random_state: 42
+        max_iter: 2000
+        n_jobs: -1
+    
+    XGBoost:
+      params:
+        random_state: 42
+        n_estimators: 100
+        max_depth: 3
+        learning_rate: 0.1
+        subsample: 0.8
+        colsample_bytree: 0.8
+        n_jobs: -1
+        eval_metric: 'reg:squarederror'
+
+    LightGBM:
+      params:
+        random_state: 42
+        n_estimators: 100
+        max_depth: 3
+        learning_rate: 0.1
+        subsample: 0.8
+        num_leaves: 31
+
+cross_validation:
+  enabled: True
+  n_splits: 10
+  shuffle: True
+  random_state: 42
+  scoring: 'neg_mean_squared_error'
+
+hyperparameter_tuning:
+  enabled: True
+  direction: 'minimize'
+  method: 'optuna'
+  n_trials: 500
+  random_state: 42
+  sampler: 'TPESampler'
+  pruner: 'MedianPruner'
+
+  search_spaces:
+    LogisticRegression:
+      C: ['log_uniform', 0.001, 100]
+      penalty: ['categorical', ['l1', 'l2']]
+      solver: ['categorical', ['liblinear', 'saga']]
+    
+    RandomForest:
+      n_estimators: ['int', 50, 500]
+      max_depth: ['int', 3, 30]
+      min_samples_split: ['int', 2, 20]
+      min_samples_leaf: ['int', 1, 10]
+      max_features: ['categorical', ['sqrt', 'log2']]
+    
+    XGBoost:
+      n_estimators: ['int', 50, 500]
+      max_depth: ['int', 3, 15]
+      learning_rate: ['log_uniform', 0.001, 0.3]
+      subsample: ['uniform', 0.6, 1.0]
+      colsample_bytree: ['uniform', 0.6, 1.0]
+      gamma: ['uniform', 0, 5]
+      min_child_weight: ['int', 1, 10]
+    
+    LightGBM:
+      n_estimators: ['int', 50, 500]
+      max_depth: ['int', 3, 15]
+      learning_rate: ['log_uniform', 0.001, 0.3]
+      num_leaves: ['int', 20, 150]
+      min_child_samples: ['int', 5, 100]
+      subsample: ['uniform', 0.6, 1.0]
+      colsample_bytree: ['uniform', 0.6, 1.0]
+
+model_validation:
+  enabled: True
+  metrics:
+    - 'r2_score'
+    - 'root_mean_squared_error'
+    - 'mean_absolute_error'
+    - 'mean_absolute_percentage_error'
+    - 'mean_squared_error'
+
+model_selection:
+  primary_metric: 'mean_squared_error'
+  satisficing_metric: 
+  - 'training_time'
+  - 'generalization_gap'
+
+  thresholds:
+    root_mean_squared_error:
+      min: 0.01
+      warning: 0.05
+      target: 0.01
+    training_time:
+      max: 7200
+      warning: 5400
+      target: 3600
+    generalization_gap:
+      # absolute gap between train and dev RMSE (lower is better)
+      max: 0.05
+      warning: 0.03
+      target: 0.02
+
+plotting:
+  enabled: true
+  optuna:
+    plot_optimization_history: true
+    plot_slice: true
+    plot_param_importances: true
+
+mlflow:
+  experiment_name: 'Car Price Prediction - Model Training'
+
+  model_registry:
+    enabled: true
+    register_best_model: true
+    model_name: 'CarPricePredictor'
+    alias: 'production'
+    compare_with_production: true

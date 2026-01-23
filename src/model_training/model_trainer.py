@@ -30,9 +30,15 @@ class ModelTrainer(LoggerMixin):
         self.model = None 
         self.model_name = None
         self.training_time = 0.0
-        cv_scores = None
 
-    def _get_model_instance(self, model_name: str, params: Dict[str, Any]):
+    def train_baseline_models(self, model_name):
+        """Train all baseline models"""
+        learning_algorithms = self.config.get('learning_algorithms',[])
+
+        if model_name not in learning_algorithms:
+            raise ValueError(f"Unkown model: {model_name}")
+
+    def _get_model_and_params(self, model_name: str, params: Dict[str, Any]):
         """Get model instance based on names
         
         Args:
@@ -42,15 +48,17 @@ class ModelTrainer(LoggerMixin):
         Returns:
             Model instance
         """
+        learning_alogrithms = self.config.get('learning_algorithms',[])
+
+        if model_name not in learning_alogrithms:
+            raise ValueError(f'Unknown model: {model_name}')
+        
         model_map = {
             'Ridge' : Ridge,
             'RandomForest' : RandomForestRegressor,
             'XGBoost' : XGBRegressor,
             'LightGBM' : LGBMRegressor
         }
-
-        if model_name not in model_map:
-            raise ValueError(f'Unkown model: {model_name}')
         
         return model_map[model_name](**params)
     
@@ -59,8 +67,7 @@ class ModelTrainer(LoggerMixin):
             self,
             X_train: np.array,
             y_train: np.array,
-            model_name: str,
-            params: Optional[Dict[str, Any]] = None
+            model_name: str
             ):
         """        
         Train a single model.
@@ -81,14 +88,9 @@ class ModelTrainer(LoggerMixin):
         self.model_name = model_name
 
         # Get model parameters
-        if params is None:
-            if model_name == "Ridge":
-                params = self.config['models']['baseline']['params']
-                
-            else:
-                params = self.config['models']['tree_based'][model_name]['params']
+        params = self.config['baseline_models']['models'][model_name].get('params',{})
 
-        self.logger.info(f'Parameters: {params}')
+        self.logger.info(f'Parameters for {model_name}: {params}')
 
         # initialize model
         self.model = self._get_model_instance(model_name,params)
@@ -101,45 +103,8 @@ class ModelTrainer(LoggerMixin):
         self.logger.info(f'Training completed in {self.training_time}')
         return self.model
     
-    def cross_validate(
-            self,
-            X_train: np.array,
-            y_train: np.array
-    ) -> Dict[str, float]:
-        """       
-        Perform cross-validation.
-        
-        Args:
-            X_train: Training features
-            y_train: Training labels
-            scoring: Scoring metric
-            
-        Returns:
-            Dictionary with CV scores
-        """
-        if not self.config['cross_validation']['enabled']:
-            self.logger.info("Cross validation disabled. Skipping...")
-            return {}
-        
-        scoring = self.config['cross_validation'].get('scoring','neg_mean_squared_error')
-        
-        cv_scores = cross_val_score(
-            X_train, y_train,scoring=scoring, cv=KFold(10), n_jobs=-1 
-        )
+    def regression_metrics(self):
+        """Regression metrics to evaluate model"""
 
-        self.cv_scores = -cv_scores
-        
-        cv_results = {
-            'cv_mean' : self.cv_scores.mean(),
-            'cv_std' : self.cv_scores.std(),
-            'cv_min' : self.cv_scores.min(),
-            'cv_max' : self.cv_scores.max(),
-            'cv_scores' : self.cv_scores.tolist()
-        }
-
-        self.logger.info(f"CV {scoring}: {cv_results['cv_mean']:.4f} (+/- {cv_results['cv_std']:.4f})")
-        self.logger.info(f"CV range: [{cv_results['cv_min']:.4f}, {cv_results['cv_max']:.4f}]")
-
-    def get_model(self):
-        "Get trained model"
-        self.model
+    
+    def evaluate_model(self, model_name):

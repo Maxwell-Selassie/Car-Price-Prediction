@@ -125,6 +125,6 @@ class FeatureSelector(LoggerMixin):
 
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as f:
-            json.dump(selected_feature_names, f)
+            json.dump(selected_feature_names, f, indent=4)
         mlflow.log_artifact(path)
         self.logger.info(f"Selected features saved at {path}.")

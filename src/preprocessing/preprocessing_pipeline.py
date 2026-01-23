@@ -77,20 +77,7 @@ class PreprocessingPipeline:
                     data_loader = DataLoader(self.config)
                     df = data_loader.load_dataset(self.config["file_paths"].get("raw_data", "data/raw/car_details.csv"))
                     mlflow.log_param('Original_dataset_shape', df.shape)
-
-
-            # # step 1: Data Quality Checking
-            # with mlflow.start_run(run_name="Data_Quality_Checking", nested=True):
-            #     with Timer("Data Quality Checking", self.logger):
-            #         dq_checker = DataQualityChecker(EDA_CONFIG)
-            #         dq_report = dq_checker.run_all_checks(df,
-            #                 expected_columns=EDA_CONFIG['data_quality_checks']["expected_columns"],
-            #                 target_column=EDA_CONFIG['data_quality_checks']["target_variable"],
-            #                         )
-            #         dq_checker.save_validation_report()
-                    
-
-
+                
 
             # step 2: Data Splitter
             with mlflow.start_run(run_name="Data_Splitting", nested=True):
@@ -106,11 +93,13 @@ class PreprocessingPipeline:
                     # clean train data
                     cleaner = DataCleaner(self.config)
                     train_df = cleaner.clean_data(train_df)
+                    cleaner.save_cleaning_report('train')
                     # clean dev data
                     dev_df = cleaner.clean_data(dev_df)
+                    cleaner.save_cleaning_report('dev')
                     # clean test data
                     test_df = cleaner.clean_data(test_df)
-                    cleaner.save_cleaning_report()
+                    cleaner.save_cleaning_report('test')
 
                     self.logger.info(f'Train set shape after cleaning: {train_df.shape}')
                     self.logger.info(f'Dev set shape after cleaning: {dev_df.shape}')
@@ -197,17 +186,24 @@ class PreprocessingPipeline:
                     y_train = train_df[self.config['target_variable']]
                     selected_features = selector.fit_transform(X_train, y_train)
                     selector.save_selected_features(X_train)
+                    
+                    # Get selected feature names
+                    selected_feature_names = selector.selected_features(X_train)
 
+                    # Convert numpy array to DataFrame with selected feature names
+                    selected_features = pd.DataFrame(selected_features, columns=selected_feature_names)
                     train_df = pd.concat([selected_features, y_train.reset_index(drop=True)], axis=1)
 
                     X_dev = dev_df.drop(columns=[self.config['target_variable']])
                     y_dev = dev_df[self.config['target_variable']]
                     selected_dev_features = selector.transform(X_dev)
+                    selected_dev_features = pd.DataFrame(selected_dev_features, columns=selected_feature_names)
                     dev_df = pd.concat([selected_dev_features, y_dev.reset_index(drop=True)], axis=1)
 
                     X_test = test_df.drop(columns=[self.config['target_variable']])
                     y_test = test_df[self.config['target_variable']]
                     selected_test_features = selector.transform(X_test)
+                    selected_test_features = pd.DataFrame(selected_test_features, columns=selected_feature_names)
                     test_df = pd.concat([selected_test_features, y_test.reset_index(drop=True)], axis=1)
 
                     self.logger.info(f'Train set shape after feature selection: {train_df.shape}')
@@ -234,7 +230,6 @@ class PreprocessingPipeline:
 
         except Exception as e:
             self.logger.error(f'Error executing preprocessing pipeline: {e}')
-            raise e
 
     def save_processed_splits(self, df: pd.DataFrame, name: str, version: int = 1, context: str = "training") -> None:
         """Save the processed train, dev, and test splits to CSV files.

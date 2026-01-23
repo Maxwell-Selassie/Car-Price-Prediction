@@ -12,8 +12,9 @@ import numpy as np
 from pathlib import Path
 from utils import LoggerMixin
 from typing import Dict, List, Any, Tuple
-
-
+import mlflow
+import shutil
+import json
 class DataLoader(LoggerMixin):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
@@ -77,15 +78,32 @@ class DataLoader(LoggerMixin):
             raise e
             
 
-    def get_metadata(self) -> Dict[str,Any]:
+    def get_metadata_and_save_metadata(self) -> Dict[str,Any]:
             """ Get dataset metadata
 
             Returns:
                 Dictionary with dataset metadata
             """
-            return {
+            metadata = {
                 'n_features' : self.n_features,
                 'feature_names' : self.feature_names,
                 'train_size' : len(self.X_train),
                 'dev_size' : len(self.X_dev)
             }
+
+            output_dir = self.config['file_paths'].get('metrics_artifacts','artifacts/metrics')
+            metrics_path = Path(output_dir) / f'data_metadata.json'
+
+            if metrics_path.is_dir():
+                shutil.rmtree(metrics_path)
+
+            metrics_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with open(metrics_path, 'w') as file:
+                    json.dump(metadata, file, indent=4)
+                    self.logger.info(f"Data metadata saved to: {metrics_path}")
+
+            except Exception as e:
+                self.logger.error(f"Error saving data to json file: {e}")
+                raise e
+            mlflow.log_artifact(metrics_path)
