@@ -3,3 +3,4 @@
 /logs/
 /mlruns/
 **/feature_selector_v1.joblib
+/_pycache_/
