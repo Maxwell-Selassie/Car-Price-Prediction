@@ -193,8 +193,8 @@ class ModelTrainer(LoggerMixin):
         self,
         model_name: str,
         model: Any,
-        X_dev: np.ndarray,
-        y_dev: np.ndarray
+        X_train: np.ndarray,
+        y_train: np.ndarray
     ) -> Dict[str, float]:
         """
         Evaluate a single model on dev set.
@@ -209,13 +209,13 @@ class ModelTrainer(LoggerMixin):
             Dictionary containing evaluation metrics
         """
         # Make predictions
-        y_pred = model.predict(X_dev)
+        y_pred = model.predict(X_train)
         
         # Calculate metrics
-        mse = mean_squared_error(y_dev, y_pred)
+        mse = mean_squared_error(y_train, y_pred)
         rmse = np.sqrt(mse)
-        mae = mean_absolute_error(y_dev, y_pred)
-        mape = mean_absolute_percentage_error(y_dev, y_pred)
+        mae = mean_absolute_error(y_train, y_pred)
+        mape = mean_absolute_percentage_error(y_train, y_pred)
         
         metrics = {
             'model_name': model_name,
@@ -229,8 +229,8 @@ class ModelTrainer(LoggerMixin):
     
     def evaluate_all_models(
         self,
-        X_dev: np.ndarray,
-        y_dev: np.ndarray
+        X_train: np.ndarray,
+        y_train: np.ndarray
     ) -> Dict[str, Dict[str, float]]:
         """
         Evaluate all trained models on dev set.
@@ -250,7 +250,7 @@ class ModelTrainer(LoggerMixin):
         for model_name, model in self.trained_models.items():
             try:
                 self.logger.info(f"\nEvaluating {model_name}...")
-                metrics = self.evaluate_model(model_name, model, X_dev, y_dev)
+                metrics = self.evaluate_model(model_name, model, X_train, y_train)
                 self.eval_results[model_name] = metrics
                 
                 self.logger.info(f"RMSE_{model_name}: {metrics['rmse']:.4f}")

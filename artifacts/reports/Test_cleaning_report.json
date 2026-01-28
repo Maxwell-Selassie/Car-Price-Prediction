@@ -1,11 +1,11 @@
 {
     "dtype_corrections": "Converted columns to category: ['fuel', 'seller_type', 'transmission', 'owner']",
-    "missing_values": "Dropped missing values. New shape: (973, 13)",
-    "remove_duplicates": "Removed duplicates. New shape: (910, 13)",
+    "missing_values": "Dropped missing values. New shape: (1461, 13)",
+    "remove_duplicates": "Removed duplicates. New shape: (1352, 13)",
     "extract_age": "Extracted age from year column.",
     "drop_columns": "Dropped columns: ['name', 'torque', 'year']",
     "final_shape_after_cleaning": [
-        910,
+        1352,
         11
     ]
 }

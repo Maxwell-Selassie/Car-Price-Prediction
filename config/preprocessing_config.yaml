@@ -15,8 +15,7 @@ file_paths:
 
 
 data_splits:
-  dev_set_size: 1500
-  test_set_size: 1000
+  test_set_size: 1500
 
 
 logging:

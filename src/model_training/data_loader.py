@@ -24,8 +24,6 @@ class DataLoader(LoggerMixin):
         # data splits
         self.X_train = None
         self.y_train = None 
-        self.X_dev = None 
-        self.y_dev = None 
 
         self.feature_names = None
         self.n_features = None
@@ -58,23 +56,9 @@ class DataLoader(LoggerMixin):
             self.logger.info(f"Train: X={self.X_train.shape}, y={self.y_train.shape}")
             self.logger.info(f"Features: {self.n_features}")
 
-
-            # Load validation set
-            dev_path = self.config.get('dev_data',{})
-            self.logger.info(f'Loading development set from: {dev_path}')
-            dev_df = pd.read_csv(dev_path)
-
-            self.X_dev = dev_df.drop(columns=[dev_path]).to_numpy()
-            self.y_dev = dev_df[target_column].to_numpy()
-
-            self.logger.info(f'Dev: X={self.X_dev.shape}, y={self.y_dev.shape}')
-
-            # validate shapes
-            if self.X_train.shape[1] != self.X_dev.shape[1]:
-                raise ValueError(f'Feature miscount between train and dev sets')
             
         except Exception as e:
-            self.logger.error(f"Error loading train/dev sets: {e}")
+            self.logger.error(f"Error loading train sets: {e}")
             raise e
             
 
@@ -87,8 +71,7 @@ class DataLoader(LoggerMixin):
             metadata = {
                 'n_features' : self.n_features,
                 'feature_names' : self.feature_names,
-                'train_size' : len(self.X_train),
-                'dev_size' : len(self.X_dev)
+                'train_size' : len(self.X_train)
             }
 
             output_dir = self.config['file_paths'].get('metrics_artifacts','artifacts/metrics')

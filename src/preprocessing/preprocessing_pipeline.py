@@ -33,8 +33,8 @@ from preprocessing import (
     FeatureTransformer
 )
 
-from utils import ensure_directory, setup_logger, read_yaml, Timer
-from eda import DataLoader, DataQualityChecker
+from utils import setup_logger, read_yaml, Timer
+from eda import DataLoader
 
 
 class PreprocessingPipeline:
@@ -64,7 +64,7 @@ class PreprocessingPipeline:
             raise ValueError("MLflow tracking URI not found in environment variables.")
         
         mlflow.set_tracking_uri(TRACKING_URI)
-        mlflow.set_experiment(experiment_name="Car Price Prediction (Preprocessing)")
+        mlflow.set_experiment(experiment_name="Car Price Prediction Model - Preprocessing")
 
         try:
             with mlflow.start_run(run_name="Preprocessing_Pipeline") as run:
@@ -83,7 +83,7 @@ class PreprocessingPipeline:
             with mlflow.start_run(run_name="Data_Splitting", nested=True):
                 with Timer("Data Splitting", self.logger):
                     splitter = DataSplitter(self.config)
-                    train_df, dev_df, test_df = splitter.split_data(df)
+                    train_df, test_df = splitter.split_data(df)
                     splitter.save_splits()
 
 
@@ -94,20 +94,16 @@ class PreprocessingPipeline:
                     cleaner = DataCleaner(self.config)
                     train_df = cleaner.clean_data(train_df)
                     cleaner.save_cleaning_report('train')
-                    # clean dev data
-                    dev_df = cleaner.clean_data(dev_df)
-                    cleaner.save_cleaning_report('dev')
+
                     # clean test data
                     test_df = cleaner.clean_data(test_df)
                     cleaner.save_cleaning_report('test')
 
                     self.logger.info(f'Train set shape after cleaning: {train_df.shape}')
-                    self.logger.info(f'Dev set shape after cleaning: {dev_df.shape}')
                     self.logger.info(f'Test set shape after cleaning: {test_df.shape}')
 
                     mlflow.log_params({
                         'train_df_shape_after_cleaning' : train_df.shape,
-                        'dev_df_shape_after_cleaning' : dev_df.shape,
                         'test_df_shape_after_cleaning' : test_df.shape
                     })
 
@@ -116,19 +112,16 @@ class PreprocessingPipeline:
             with mlflow.start_run(run_name="Feature_Transformation", nested=True):
                 with Timer("Feature Transformation", self.logger):
                     transformer = FeatureTransformer(self.config)
-                    # transform train, dev and test data
+                    # transform train and test data
                     train_df = transformer.transform_features(train_df)
-                    dev_df = transformer.transform_features(dev_df)
                     test_df = transformer.transform_features(test_df)
                     transformer.save_transformation_report()
 
                     self.logger.info(f'Train set shape after transformation: {train_df.shape}')
-                    self.logger.info(f'Dev set shape after transformation: {dev_df.shape}')
                     self.logger.info(f'Test set shape after transformation: {test_df.shape}')
 
                     mlflow.log_params({
                         'train_df_shape_after_transformation' : train_df.shape,
-                        'dev_df_shape_after_transformation' : dev_df.shape,
                         'test_df_shape_after_transformation' : test_df.shape
                     })
 
@@ -137,18 +130,15 @@ class PreprocessingPipeline:
             with mlflow.start_run(run_name="Feature_Encoding", nested=True):
                 with Timer("Feature Encoding", self.logger):
                     encoder = FeatureEncoder(self.config)
-                    # fit_transform on train data and transform dev and test data
+                    # fit_transform on train data and transform test data
                     train_df = encoder.fit_transform(train_df)
-                    dev_df = encoder.transform(dev_df)
                     test_df = encoder.transform(test_df)
 
                     self.logger.info(f'Train set shape after encoding: {train_df.shape}')
-                    self.logger.info(f'Dev set shape after encoding: {dev_df.shape}')
                     self.logger.info(f'Test set shape after encoding: {test_df.shape}')
 
                     mlflow.log_params({
                         'train_df_shape_after_encoding' : train_df.shape,
-                        'dev_df_shape_after_encoding' : dev_df.shape,
                         'test_df_shape_after_encoding' : test_df.shape
                     })
 
@@ -156,24 +146,20 @@ class PreprocessingPipeline:
             with mlflow.start_run(run_name="Feature_Scaling", nested=True):
                 with Timer("Feature Scaling", self.logger):
                     scaler = FeatureScaler(self.config)
-                    # fit_transform on train data and transform dev and test data
+                    # fit_transform on train data and transform test data
                     numeric_columns_train = train_df.select_dtypes(include=[np.number]).columns.tolist() # numeric columns for train data
                     train_df = scaler.fit_transform(train_df, numeric_columns_train)
 
-                    # numeric columns for dev and test data
-                    numeric_columns_dev = dev_df.select_dtypes(include=[np.number]).columns.tolist()
+                    # numeric columns for test data
                     numeric_columns_test = test_df.select_dtypes(include=[np.number]).columns.tolist()
-                    dev_df = scaler.transform(dev_df, numeric_columns_dev)
                     test_df = scaler.transform(test_df, numeric_columns_test)
 
                     mlflow.log_params({
                         'train_df_shape_after_scaling' : train_df.shape,
-                        'dev_df_shape_after_scaling' : dev_df.shape,
                         'test_df_shape_after_scaling' : test_df.shape
                     })
 
                     self.logger.info(f'Train set shape after scaling: {train_df.shape}')
-                    self.logger.info(f'Dev set shape after scaling: {dev_df.shape}')
                     self.logger.info(f'Test set shape after scaling: {test_df.shape}')
 
 
@@ -181,7 +167,7 @@ class PreprocessingPipeline:
             with mlflow.start_run(run_name="Feature_Selection", nested=True):
                 with Timer("Feature Selection", self.logger):
                     selector = FeatureSelector(self.config)
-                    # fit_transform on train data and transform dev and test data
+                    # fit_transform on train data and transform test data
                     X_train = train_df.drop(columns=[self.config['target_variable']])
                     y_train = train_df[self.config['target_variable']]
                     selected_features = selector.fit_transform(X_train, y_train)
@@ -194,11 +180,6 @@ class PreprocessingPipeline:
                     selected_features = pd.DataFrame(selected_features, columns=selected_feature_names)
                     train_df = pd.concat([selected_features, y_train.reset_index(drop=True)], axis=1)
 
-                    X_dev = dev_df.drop(columns=[self.config['target_variable']])
-                    y_dev = dev_df[self.config['target_variable']]
-                    selected_dev_features = selector.transform(X_dev)
-                    selected_dev_features = pd.DataFrame(selected_dev_features, columns=selected_feature_names)
-                    dev_df = pd.concat([selected_dev_features, y_dev.reset_index(drop=True)], axis=1)
 
                     X_test = test_df.drop(columns=[self.config['target_variable']])
                     y_test = test_df[self.config['target_variable']]
@@ -207,19 +188,16 @@ class PreprocessingPipeline:
                     test_df = pd.concat([selected_test_features, y_test.reset_index(drop=True)], axis=1)
 
                     self.logger.info(f'Train set shape after feature selection: {train_df.shape}')
-                    self.logger.info(f'Dev set shape after feature selection: {dev_df.shape}')
                     self.logger.info(f'Test set shape after feature selection: {test_df.shape}')
 
 
 
             # Save processed splits
-            self.save_processed_splits(train_df, version=1, context="training")
-            self.save_processed_splits(dev_df, version=1, context="development")
-            self.save_processed_splits(test_df, version=1, context="testing")
+            self.save_processed_splits(train_df,name='train', version=1, context="training")
+            self.save_processed_splits(test_df,name='test', version=1, context="testing")
 
             mlflow.log_params({
                 'final_train_shape' : train_df.shape,
-                'final_dev_shape' : dev_df.shape,
                 'final_test_shape' : test_df.shape
             })
 
@@ -250,7 +228,7 @@ class PreprocessingPipeline:
             df.to_csv(df_path, index=False)
 
             dataset = mlflow.data.from_pandas(
-                df, name=f"processed_{name}_v{version}", source="local"
+                df, name=f"processed_{name}_v{version}", source="preprocessing_pipeline.py"
             )
 
             mlflow.log_input(dataset, context=context)
