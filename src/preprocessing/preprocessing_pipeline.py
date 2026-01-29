@@ -46,11 +46,8 @@ class PreprocessingPipeline:
         self.logger = setup_logger("PreprocessingPipeline","logs/")
 
 
-    def execute(self) -> pd.DataFrame:
+    def execute(self):
         """Execute the preprocessing pipeline on the input DataFrame.
-
-        Returns:
-            pd.DataFrame: The preprocessed DataFrame.
         """
         self.logger.info("="*80)
         self.logger.info("STARTING PREPROCESSING PIPELINE")
@@ -71,7 +68,6 @@ class PreprocessingPipeline:
                 mlflow.set_tag("stage", "preprocessing")
 
             # step 0: Data Loading
-            # EDA_CONFIG = read_yaml('config/eda_config.yaml')
             with mlflow.start_run(run_name="Data_Loading", nested=True):
                 with Timer("Data Loading", self.logger):
                     data_loader = DataLoader(self.config)

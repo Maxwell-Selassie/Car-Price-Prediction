@@ -120,7 +120,7 @@ class HyperparameterTuner(LoggerMixin):
         else:
             raise ValueError(f"Unknown parameter type: {param_type}")
     
-    def _create_objective(self, model_name: str, X_train: np.ndarray, y_train: np.ndarray):
+    def _create_objective(self, model_name: str, X_train: pd.DataFrame, y_train: pd.DataFrame):
         """
         Create objective function for Optuna optimization.
         
@@ -128,8 +128,6 @@ class HyperparameterTuner(LoggerMixin):
             model_name: Name of the model
             X_train: Training features
             y_train: Training labels
-            X_val: Validation features
-            y_val: Validation labels
             
         Returns:
             Objective function
@@ -155,14 +153,16 @@ class HyperparameterTuner(LoggerMixin):
                 else:
                     raise ValueError(f"Unknown model: {model_name}")
                 
+                scoring = self.config['cross_validation'].get('scoring','neg_mean_squared_error')
+                n_splits = self.config['cross_validation'].get('n_splits', 10)
                 # Train on training data
                 cv_scores = cross_val_score(
                     estimator=model, X=X_train,
-                    y=y_train, cv=KFold(5), 
-                    scoring='neg_root_mean_sqaured_error', n_jobs=-1
+                    y=y_train, cv=KFold(n_splits), 
+                    scoring=scoring, n_jobs=-1
                 )
                 
-                return -cv_scores.mean()
+                return np.sqrt(-cv_scores).mean()
             
             except Exception as e:
                 self.logger.warning(f"Trial failed with error: {str(e)}")
@@ -173,8 +173,8 @@ class HyperparameterTuner(LoggerMixin):
     def tune_model(
         self,
         model_name: str,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame
     ) -> Dict[str, Any]:
         """
         Tune hyperparameters for a single model.
@@ -235,8 +235,8 @@ class HyperparameterTuner(LoggerMixin):
         self,
         model_name: str,
         best_params: Dict[str, Any],
-        X_train: np.ndarray,
-        y_train: np.ndarray
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame
     ) -> Any:
         """
         Retrain model with best hyperparameters.
@@ -281,27 +281,27 @@ class HyperparameterTuner(LoggerMixin):
         self,
         model_name: str,
         model: Any,
-        X_dev: np.ndarray,
-        y_dev: np.ndarray
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame
     ) -> Dict[str, float]:
         """
-        Evaluate model on dev set.
+        Evaluate model on train set.
         
         Args:
             model_name: Name of the model
             model: Trained model instance
-            X_dev: dev features
-            y_dev: dev labels
+            X_train: train features
+            y_train: train labels
             
         Returns:
             Dictionary of evaluation metrics
         """
-        y_pred = model.predict(X_dev)
+        y_pred = model.predict(X_train)
         
-        mse = mean_squared_error(y_dev, y_pred)
+        mse = mean_squared_error(y_train, y_pred)
         rmse = np.sqrt(mse)
-        mae = mean_absolute_error(y_dev, y_pred)
-        mape = mean_absolute_percentage_error(y_dev, y_pred)
+        mae = mean_absolute_error(y_train, y_pred)
+        mape = mean_absolute_percentage_error(y_train, y_pred)
         
         metrics = {
             'model_name': model_name,
@@ -398,40 +398,37 @@ class HyperparameterTuner(LoggerMixin):
         
         return str(results_file)
     
-    def save_best_model(self, model_name: str, output_dir: Optional[str] = None) -> str:
-        """
-        Save best model with 'production' alias.
+    # def save_best_model(self, model_name: str, output_dir: Optional[str] = None) -> str:
+    #     """
+    #     Save best model with 'production' alias.
         
-        Args:
-            model_name: Name of the model
-            output_dir: Directory to save model (optional)
+    #     Args:
+    #         model_name: Name of the model
+    #         output_dir: Directory to save model (optional)
             
-        Returns:
-            Path to saved model
-        """
-        if output_dir is None:
-            output_dir = self.config['file_paths'].get('model_artifacts','artifacts/models/')
+    #     Returns:
+    #         Path to saved model
+    #     """
+    #     if output_dir is None:
+    #         output_dir = self.config['file_paths'].get('model_artifacts','artifacts/models/')
         
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+    #     output_path = Path(output_dir)
+    #     output_path.mkdir(parents=True, exist_ok=True)
         
-        model_file = output_path / f'{model_name}_production.joblib'
+    #     model_file = output_path / f'{model_name}_production.joblib'
         
-        if model_name not in self.trained_models:
-            self.logger.error(f"Model {model_name} not found in trained models")
-            return None
+    #     if model_name not in self.trained_models:
+    #         self.logger.error(f"Model {model_name} not found in trained models")
+    #         return None
         
-        joblib.dump(self.trained_models[model_name], model_file)
-        self.logger.info(f"✓ Best model saved to {model_file} with alias 'production'")
+    #     joblib.dump(self.trained_models[model_name], model_file)
+    #     self.logger.info(f"✓ Best model saved to {model_file} with alias 'production'")
         
-        return str(model_file)
+    #     return str(model_file)
     
     def log_to_mlflow(
         self,
         model_name: str,
-        best_params: Dict[str, Any],
-        eval_metrics: Dict[str, float],
-        model_path: str,
         plot_paths: Dict[str, str]
     ) -> None:
         """
@@ -439,24 +436,8 @@ class HyperparameterTuner(LoggerMixin):
         
         Args:
             model_name: Name of the model
-            best_params: Best hyperparameters
-            eval_metrics: Evaluation metrics
-            model_path: Path to saved model
             plot_paths: Dictionary of plot paths
         """
-        self.logger.info(f"\nLogging {model_name} to MLflow...")
-        
-        # Log parameters
-        for param_name, param_value in best_params.items():
-            mlflow.log_param(f"{model_name}_{param_name}", param_value)
-        
-        # Log metrics
-        for metric_name, metric_value in eval_metrics.items():
-            if metric_name != 'model_name':
-                mlflow.log_metric(f"{model_name}_{metric_name}", metric_value)
-        
-        # Log model
-        mlflow.log_artifact(model_path, artifact_path=f"{model_name}/production")
         
         # Log plots
         for plot_name, plot_path in plot_paths.items():
@@ -471,12 +452,8 @@ class HyperparameterTuner(LoggerMixin):
     def tune_and_retrain_models(
         self,
         model_names: list,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
-        X_dev: np.ndarray,
-        y_dev: np.ndarray,
-        X_test: np.ndarray,
-        y_test: np.ndarray
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame
     ) -> Dict[str, Any]:
         """
         Complete pipeline: tune, retrain, evaluate, and save best model.
@@ -485,10 +462,6 @@ class HyperparameterTuner(LoggerMixin):
             model_names: List of model names to tune
             X_train: Training features
             y_train: Training labels
-            X_dev: Validation features
-            y_dev: Validation labels
-            X_test: Test features
-            y_test: Test labels
             
         Returns:
             Dictionary containing best model name and its details
@@ -507,7 +480,7 @@ class HyperparameterTuner(LoggerMixin):
                 tune_result = self.tune_model(model_name, X_train, y_train)
                 
                 # Retrain with best params
-                best_model = self.retrain_with_best_params(
+                f'{model_name}_tuned_model' = self.retrain_with_best_params(
                     model_name,
                     tune_result['best_params'],
                     X_train,
@@ -515,7 +488,7 @@ class HyperparameterTuner(LoggerMixin):
                 )
                 
                 # Evaluate
-                metrics = self.evaluate_model(model_name, best_model, X_dev, y_dev)
+                metrics = self.evaluate_model(model_name, f'{model_name}_tuned_model', X_train, y_train)
                 
                 tuning_results[model_name] = tune_result
                 eval_results[model_name] = metrics
@@ -523,12 +496,6 @@ class HyperparameterTuner(LoggerMixin):
                 # Plot optimization results
                 plot_paths = self.plot_optimization_results(model_name)
                 
-                # Save model
-                model_path = self.save_best_model(model_name)
-                
-                # Log to MLflow
-                with mlflow.start_run(run_name=f"{model_name}_tuning", nested=True):
-                    self.log_to_mlflow(model_name, tune_result['best_params'], metrics, model_path, plot_paths)
                 
             except Exception as e:
                 self.logger.error(f"✗ Error tuning {model_name}: {str(e)}")
@@ -553,10 +520,18 @@ class HyperparameterTuner(LoggerMixin):
         
         mlflow.log_params({
             'best_model_name': best_model_name,
-            'best_model': self.best_model,
             'best_params': self.best_params,
             'best_metrics': best_metrics,
             'tuning_results': tuning_results,
             'eval_results': eval_results
         })
     
+        hyperparameter_tuning_results = {
+            'best_model_name' : best_model_name,
+            'best_params' : self.best_params,
+            'best_metrics' : best_metrics,
+            'best_model' : self.best_model,
+            'tuning_results' : tuning_results,
+            'eval_results' : eval_results
+        }
+        return hyperparameter_tuning_results

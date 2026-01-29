@@ -8,7 +8,7 @@ import time
 import json
 import joblib
 from pathlib import Path
-from utils import LoggerMixin
+from utils import LoggerMixin, format_duration
 from typing import Dict, Any, List, Optional, Tuple
 from sklearn.linear_model import Ridge 
 from sklearn.ensemble import RandomForestRegressor
@@ -82,8 +82,8 @@ class ModelTrainer(LoggerMixin):
     def train(
         self,
         model_name: str,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame,
         params: Optional[Dict[str, Any]] = None
     ):
         """
@@ -123,8 +123,8 @@ class ModelTrainer(LoggerMixin):
     
     def train_baseline_models(
         self,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame,
     ) -> Dict[str, Dict[str, Any]]:
         """
         Train all baseline models from config.
@@ -159,9 +159,8 @@ class ModelTrainer(LoggerMixin):
                 
                 # Store results
                 self.results[model_name] = {
-                    'model': trained_model,
                     'params': params,
-                    'training_time': self.training_time
+                    'training_time': format_duration(self.training_time)
                 }
 
 
@@ -193,17 +192,17 @@ class ModelTrainer(LoggerMixin):
         self,
         model_name: str,
         model: Any,
-        X_train: np.ndarray,
-        y_train: np.ndarray
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame
     ) -> Dict[str, float]:
         """
-        Evaluate a single model on dev set.
+        Evaluate a single model on train set.
         
         Args:
             model_name: Name of the model
             model: Trained model instance
-            X_dev: Development features
-            y_dev: Development labels
+            X_train: train features
+            y_train: train labels
             
         Returns:
             Dictionary containing evaluation metrics
@@ -229,21 +228,21 @@ class ModelTrainer(LoggerMixin):
     
     def evaluate_all_models(
         self,
-        X_train: np.ndarray,
-        y_train: np.ndarray
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame
     ) -> Dict[str, Dict[str, float]]:
         """
-        Evaluate all trained models on dev set.
+        Evaluate all trained models on train set.
         
         Args:
-            X_dev: Development features
-            y_dev: Development labels
+            X_train: train features
+            y_train: train labels
             
         Returns:
             Dictionary containing evaluation results for all models
         """
         self.logger.info("\n" + "="*60)
-        self.logger.info("EVALUATING MODELS ON DEV SET")
+        self.logger.info("EVALUATING MODELS ON train SET")
         self.logger.info("="*60)
         
         
@@ -266,7 +265,7 @@ class ModelTrainer(LoggerMixin):
     
     def get_top_models(self, top_k: int = 2) -> List[str]:
         """
-        Select top K models based on dev RMSE.
+        Select top K models based on train RMSE.
         
         Args:
             top_k: Number of top models to select
@@ -295,7 +294,6 @@ class ModelTrainer(LoggerMixin):
         for idx, (model_name, metrics) in enumerate(top_models, 1):
             self.logger.info(f"  {idx}. {model_name} (RMSE: {metrics['rmse']:.4f})")
             top_model_dict[model_name] = {
-                'model': self.trained_models[model_name],
                 'metrics': metrics,
                 'params': self.results[model_name]['params']
             }
@@ -402,8 +400,8 @@ class ModelTrainer(LoggerMixin):
     
     def select_and_save_top_models(
         self,
-        X_dev: np.ndarray,
-        y_dev: np.ndarray,
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame,
         top_k: int = 2,
         version: int = 1
     ) -> Dict[str, Any]:
@@ -411,8 +409,8 @@ class ModelTrainer(LoggerMixin):
         Complete pipeline: evaluate, select, save, and log top models.
         
         Args:
-            X_dev: Development features
-            y_dev: Development labels
+            X_train: train features
+            y_train: train labels
             top_k: Number of top models to select
             version: Version number for saved models
             
@@ -420,7 +418,7 @@ class ModelTrainer(LoggerMixin):
             Dictionary containing top model info, paths, and metrics
         """
         # Evaluate all models
-        self.evaluate_all_models(X_dev, y_dev)
+        self.evaluate_all_models(X_train, y_train)
         
         # Get top models
         top_model_names = self.get_top_models(top_k)
@@ -438,9 +436,10 @@ class ModelTrainer(LoggerMixin):
         self.logger.info("MODEL SELECTION AND SAVING COMPLETED")
         self.logger.info("="*60)
         
-        return {
+        model_training_results = {
             'top_models': top_model_names,
             'eval_results_path': eval_results_path,
             'saved_model_paths': saved_model_paths,
             'all_eval_results': self.eval_results
         }
+        return model_training_results

@@ -13,7 +13,6 @@ project:
 
 file_paths:
   train_data: "data/processed/train_processed_v1.csv"
-  development_data: "data/processed/dev_processed_v1.csv"
   test_data: "data/processed/test_processed_v1.csv"
   model_artifacts: "artifacts/models/"
   best_model_path: "artifacts/models/best_model.joblib"
@@ -42,18 +41,18 @@ baseline_models:
         alpha: 0.3
         random_state: 42
         max_iter: 2000
-        n_jobs: -1
+
     
     XGBoost:
       params:
         random_state: 42
-        n_estimators: 100
-        max_depth: 3
-        learning_rate: 0.1
-        subsample: 0.8
+        n_estimators: 200
+        max_depth: 6
+        learning_rate: 0.04
+        subsample: 0.6
         colsample_bytree: 0.8
         n_jobs: -1
-        eval_metric: 'reg:squarederror'
+        objective: 'reg:squarederror'
 
     LightGBM:
       params:
@@ -82,7 +81,7 @@ hyperparameter_tuning:
   enabled: True
   direction: 'minimize'
   method: 'optuna'
-  n_trials: 400
+  n_trials: 50
   random_state: 42
   sampler: 'TPESampler'
   pruner: 'MedianPruner'
@@ -127,25 +126,8 @@ model_validation:
     - 'mean_squared_error'
 
 model_selection:
-  primary_metric: 'mean_squared_error'
-  satisficing_metric: 
-  - 'training_time'
-  - 'generalization_gap'
+  primary_metric: 'root_mean_squared_error'
 
-  thresholds:
-    root_mean_squared_error:
-      min: 0.01
-      warning: 0.05
-      target: 0.01
-    training_time:
-      max: 7200
-      warning: 5400
-      target: 3600
-    generalization_gap:
-      # absolute gap between train and dev RMSE (lower is better)
-      max: 0.05
-      warning: 0.03
-      target: 0.02
 
 plotting:
   enabled: true
@@ -154,12 +136,3 @@ plotting:
     plot_slice: true
     plot_param_importances: true
 
-mlflow:
-  experiment_name: 'Car Price Prediction - Model Training'
-
-  model_registry:
-    enabled: true
-    register_best_model: true
-    model_name: 'CarPricePredictor'
-    alias: 'production'
-    compare_with_production: true

@@ -28,11 +28,11 @@ class DataLoader(LoggerMixin):
         self.feature_names = None
         self.n_features = None
 
-    def load(self) -> Tuple[np.array, np.array, np.array, np.array]:
+    def load(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Loads train and dev sets
         
         Returns:
-            Tuple(X_train, y_train, X_dev, y_dev)
+            Tuple(X_train, y_train)
         """
         self.logger.info(f'='*50)
         self.logger.info(f'LOADING DATA')
@@ -48,8 +48,8 @@ class DataLoader(LoggerMixin):
             if target_column not in train_df:
                 raise ValueError(f"Target column '{target_column}' not found in dataset")
             
-            self.X_train = train_df.drop(columns=[target_column]).to_numpy()
-            self.y_train = train_df[target_column].to_numpy()
+            self.X_train = train_df.drop(columns=[target_column])
+            self.y_train = train_df[target_column]
             self.feature_names = train_df.drop(columns=[target_column]).columns.tolist()
             self.n_features = len(self.feature_names)
 
