@@ -24,7 +24,7 @@ class FeatureSelector(LoggerMixin):
         super().__init__()
         self.config = config
         self.selector = RFECV(
-            estimator=RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1), 
+            estimator=RandomForestRegressor(n_estimators=300, random_state=42), 
             step=1, cv=KFold(5), scoring='neg_mean_squared_error')
         self.logger = self.setup_class_logger("FeatureSelector", config, "logging")
 
