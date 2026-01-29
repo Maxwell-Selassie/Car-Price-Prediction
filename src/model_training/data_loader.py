@@ -74,7 +74,7 @@ class DataLoader(LoggerMixin):
                 'train_size' : len(self.X_train)
             }
 
-            output_dir = self.config['file_paths'].get('metrics_artifacts','artifacts/metrics')
+            output_dir = self.config.get('metrics_artifacts','artifacts/metrics')
             metrics_path = Path(output_dir) / f'data_metadata.json'
 
             if metrics_path.is_dir():
