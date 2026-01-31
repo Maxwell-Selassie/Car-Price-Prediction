@@ -25,3 +25,4 @@ class LoadModel(LoggerMixin):
         
         except Exception as e:
             self.logger.error(f'Error loading model from mlflow: {e}')
+            raise

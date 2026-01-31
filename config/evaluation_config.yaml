@@ -5,6 +5,8 @@
 model_uri: "models:/RandomForest_model@production"
 test_file_path: "data/processed/test_processed_v1.csv"
 
+target_column: 'selling_price_log'
+
 logging:
   level: INFO
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -17,4 +19,7 @@ shap:
 regression_metrics:
   - 'Mean_squared_error'
   - 'Root_mean_squared_error'
-  - ''
+  - 'Mean_absolute_error'
+  - 'R2_score'
+  - 'Mean absolute_percentage_error'
+
