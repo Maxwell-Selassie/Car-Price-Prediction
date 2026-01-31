@@ -1,0 +1,20 @@
+# This is a configuration file for model evaluation
+# This file contains a set of evaluation methods that 
+# will be used to evaluate our production model
+
+model_uri: "models:/RandomForest_model@production"
+test_file_path: "data/processed/test_processed_v1.csv"
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  log_file: logs/preprocessing.log
+
+permutation_importance:
+
+shap:
+
+regression_metrics:
+  - 'Mean_squared_error'
+  - 'Root_mean_squared_error'
+  - ''

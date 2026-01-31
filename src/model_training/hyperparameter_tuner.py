@@ -480,7 +480,7 @@ class HyperparameterTuner(LoggerMixin):
                 tune_result = self.tune_model(model_name, X_train, y_train)
                 
                 # Retrain with best params
-                f'{model_name}_tuned_model' = self.retrain_with_best_params(
+                best_model = self.retrain_with_best_params(
                     model_name,
                     tune_result['best_params'],
                     X_train,
@@ -488,7 +488,7 @@ class HyperparameterTuner(LoggerMixin):
                 )
                 
                 # Evaluate
-                metrics = self.evaluate_model(model_name, f'{model_name}_tuned_model', X_train, y_train)
+                metrics = self.evaluate_model(model_name, best_model, X_train, y_train)
                 
                 tuning_results[model_name] = tune_result
                 eval_results[model_name] = metrics

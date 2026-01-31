@@ -1,6 +1,6 @@
 from .data_loader import DataLoader
-from .hyperparameter_tuner import HyperparameterTuner
 from .model_trainer import ModelTrainer
+from .hyperparameter_tuner import HyperparameterTuner
 
 __all__ = [
     "DataLoader",

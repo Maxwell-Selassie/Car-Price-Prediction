@@ -1,0 +1,36 @@
+{
+    "XGBoost": {
+        "metrics": {
+            "model_name": "XGBoost",
+            "rmse": 0.23279794013745525,
+            "mse": 0.0541948809322422,
+            "mae": 0.17579653673422685,
+            "mape": 0.9005270184233722
+        },
+        "params": {
+            "random_state": 42,
+            "n_estimators": 200,
+            "max_depth": 6,
+            "learning_rate": 0.04,
+            "subsample": 0.6,
+            "colsample_bytree": 0.8,
+            "n_jobs": -1,
+            "objective": "reg:squarederror"
+        }
+    },
+    "RandomForest": {
+        "metrics": {
+            "model_name": "RandomForest",
+            "rmse": 0.30141755438216833,
+            "mse": 0.09085254208972741,
+            "mae": 0.22735803877957214,
+            "mape": 1.122684272416076
+        },
+        "params": {
+            "max_depth": 7,
+            "n_estimators": 120,
+            "min_samples_split": 4,
+            "min_samples_leaf": 3
+        }
+    }
+}

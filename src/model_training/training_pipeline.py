@@ -82,7 +82,7 @@ class ModelTrainingPipeline(LoggerMixin):
 
             # step 0: Data Loading
             with mlflow.start_run(run_name='Data_Loading', nested=True):
-                with Timer('Data_Loading', self.config):
+                with Timer('Data_Loading', self.logger):
                     self.logger.info("\n" + "="*70)
                     self.logger.info("STEP 1: LOADING DATA")
                     self.logger.info("="*70)
@@ -113,7 +113,7 @@ class ModelTrainingPipeline(LoggerMixin):
 
             # step 1: Model Trainer
             with mlflow.start_run(run_name='Model_Trainer', nested=True):
-                with Timer('Model_Training', self.config):
+                with Timer('Model_Training', self.logger):
                     self.logger.info("\n" + "="*70)
                     self.logger.info("STEP 2: TRAINING BASELINE MODELS")
                     self.logger.info("="*70)
@@ -143,7 +143,7 @@ class ModelTrainingPipeline(LoggerMixin):
 
             # step 2: Hyperparameter Tuning
             with mlflow.start_run(run_name='Hyperparameter_Tuner', nested=True):
-                with Timer('Hyperparameter_tuning', self.config):
+                with Timer('Hyperparameter_tuning', self.logger):
                     self.logger.info("\n" + "="*70)
                     self.logger.info("STEP 3: HYPERPARAMETER TUNING WITH OPTUNA (CV as Validation)")
                     self.logger.info("="*70)
@@ -173,7 +173,7 @@ class ModelTrainingPipeline(LoggerMixin):
                         raise
 
             # step 3: register best model
-            with Timer('Register best model', self.config):
+            with Timer('Register best model', self.logger):
                 self.logger.info("\n" + "="*70)
                 self.logger.info("STEP 5: REGISTERING MODEL TO MLFLOW (DEFENSIVE)")
                 self.logger.info("="*70)
@@ -294,12 +294,12 @@ class ModelTrainingPipeline(LoggerMixin):
                     # Log best model parameters and metrics to MLflow
                     mlflow.log_params({
                         f"best_model_{key}": str(value) 
-                        for key, value in self.best_model_info['params'].items()
+                        for key, value in self.best_model_info['best_params'].items()
                     })
                     
                     mlflow.log_metrics({
                         f"best_model_{key}": value 
-                        for key, value in self.best_model_info['metrics'].items()
+                        for key, value in self.best_model_info['best_metrics'].items()
                         if key != 'model_name'
                     })
                     
@@ -314,7 +314,7 @@ class ModelTrainingPipeline(LoggerMixin):
                     # Log model using sklearn flavor with signature and input example
                     mlflow.sklearn.log_model(
                         sk_model=self.best_model,
-                        artifact_path=f"{model_name}_production",
+                        name=f"{model_name}_production",
                         signature=signature,
                         input_example=X_example,
                         registered_model_name=f"{model_name}_model"
@@ -350,7 +350,6 @@ class ModelTrainingPipeline(LoggerMixin):
                     self.logger.info(f"  Version: {latest_version}")
                     self.logger.info(f"  Alias: production")
                     self.logger.info(f"  URI: {model_uri}")
-                    self.logger.info(f"  Signature: {signature}")
                     
                     if production_alias_exists and existing_model_rmse is not None:
                         self.logger.info(f"Replaced previous production model ({existing_model_name})")
@@ -377,7 +376,7 @@ class ModelTrainingPipeline(LoggerMixin):
                     raise
             
             # step 4: save pipeline
-            with Timer('Save Pipeline', self.config):
+            with Timer('Save Pipeline', self.logger):
                 output_dir = Path(self.config['file_paths'].get('metrics_artifacts', 'artifacts/models/metrics/'))
                 output_dir.mkdir(parents=True, exist_ok=True)
                 
@@ -407,7 +406,7 @@ class ModelTrainingPipeline(LoggerMixin):
                 return str(summary_path)
             
             # step 5: save best model
-            with Timer('Save Best Model', self.config):
+            with Timer('Save Best Model', self.logger):
                 output_dir = Path(self.config['file_paths'].get('metrics_artifacts', 'artifacts/models/metrics/'))
                 output_dir.mkdir(parents=True, exist_ok=True)
                 
@@ -476,13 +475,11 @@ def main(config_path: str = 'config/training_config.yaml'):
     
     # Run pipeline
     pipeline = ModelTrainingPipeline(config)
-    results = pipeline.run()
+    pipeline.execute()
     
-    return results
+
 
 
 if __name__ == "__main__":
     # Run the pipeline
-    results = main('config/training_config.yaml')
-    print("\nPipeline completed successfully!")
-    print(json.dumps(results, indent=2, default=str))
+    main()
