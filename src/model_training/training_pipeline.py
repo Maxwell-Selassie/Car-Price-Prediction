@@ -1,7 +1,7 @@
 """
 Model Training Pipeline Module
 
-This module orchestrates the complete machine learning pipeline:
+This module orchestrates the complete machine learning model training pipeline:
 1. Data loading
 2. Baseline model training and evaluation
 3. Hyperparameter tuning with cross-validation
