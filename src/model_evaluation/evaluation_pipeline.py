@@ -61,13 +61,15 @@ class ModelEvaluationPipeline(LoggerMixin):
                     self.y_test = self.load_data.y_test
 
                     data_info = {
-                        "test_samples" : len(self.x_test),
+                        "x_test_samples" : len(self.x_test),
+                        "y_test_samples" : len(self.y_test),
                         "n_features" : len(self.x_test.columns),
                         "feature_names" : self.x_test.columns.tolist()
                     }
 
                     self.logger.info(f"Data loaded successfully")
-                    self.logger.info("Test samples: ",data_info['test_samples'])
+                    self.logger.info("X_Test samples: ",data_info['x_test_samples'])
+                    self.logger.info("Y Test samples: ", data_info["y_test_samples"])
                     self.logger.info("Number of features: ",data_info["n_features"])
 
                     self.pipeline_results["data_loading"] = data_info
