@@ -2,8 +2,6 @@
 
 import pandas as pd
 import numpy as np
-from utils import LoggerMixin, Timer
-from model_evaluation import LoadData, LoadModel, RegressionMetrics,RunPredictions
 import sys
 import os
 from pathlib import Path
@@ -12,15 +10,18 @@ import mlflow
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from utils import LoggerMixin, Timer
+from model_evaluation import LoadData, LoadModel, RegressionMetrics,RunPredictions
+
 class ModelEvaluationPipeline(LoggerMixin):
     def __init__(self, config):
         super().__init__()
         self.config = config 
         self.logger = self.setup_class_logger("ModelEvaluation",config,"logging")
-        self.load_data = LoadData()
-        self.load_model = LoadModel()
-        self.run_predictions = RunPredictions()
-        self.regression_metrics = RegressionMetrics()
+        self.load_data = LoadData(config)
+        self.load_model = LoadModel(config)
+        self.run_predictions = RunPredictions(config)
+        self.regression_metrics = RegressionMetrics(config)
         self.pipeline_results = {}
         self.y_pred = None
         self.x_test = None
@@ -66,8 +67,8 @@ class ModelEvaluationPipeline(LoggerMixin):
                     }
 
                     self.logger.info(f"Data loaded successfully")
-                    self.logger.info(f"Test samples: {data_info['test_samples']}")
-                    self.logger.info(f"Number of features: {data_info["n_features"]}")
+                    self.logger.info("Test samples: ",data_info['test_samples'])
+                    self.logger.info("Number of features: ",data_info["n_features"])
 
                     self.pipeline_results["data_loading"] = data_info
                 

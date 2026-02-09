@@ -22,11 +22,12 @@ class LoadData(LoggerMixin):
         target_variable = self.config.get("target_column", "selling_price_log")
         
         try: 
-            test_df = self.config.get("test_file_path", "data/processed/test_processed_v1.csv")
+            test_df_path = self.config.get("test_file_path", "data/processed/test_processed_v1.csv")
+            test_df = pd.read_csv(test_df_path)
             if target_variable not in test_df.columns:
                 raise ValueError(f"Target varaible must be present in dataset")
             
-            self.X_test = test_df.drop(column=[target_variable]).copy()
+            self.X_test = test_df.drop(columns=[target_variable]).copy()
             self.y_test = test_df[target_variable]
 
             self.logger.info(f"Number of features: {self.X_test.shape[1]}")
