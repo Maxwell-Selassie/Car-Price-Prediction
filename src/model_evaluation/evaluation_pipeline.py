@@ -12,7 +12,7 @@ import mlflow
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-class ModelEvaluation(LoggerMixin):
+class ModelEvaluationPipeline(LoggerMixin):
     def __init__(self, config):
         super().__init__()
         self.config = config 
@@ -30,6 +30,10 @@ class ModelEvaluation(LoggerMixin):
 
     def execute(self):
         """Run model evaluation"""
+        self.logger.info(f"="*50)
+        self.logger.info(f"MODEL EVALUATION STARTED")
+        self.logger.info("="*50) 
+
         load_dotenv() 
 
         TRACKING_URI = os.getenv("MLFLOW_TRACKER")
@@ -116,7 +120,54 @@ class ModelEvaluation(LoggerMixin):
                 try:
                     self.eval_metrics = self.regression_metrics.metrics(self.y_test, self.y_pred)
 
-                    
+                    mse = self.eval_metrics['mse']
+                    rmse = self.eval_metrics['rmse']
+                    mae = self.eval_metrics['mae']
+                    mape = self.eval_metrics['mape']
+                    r2_score = self.eval_metrics['r2_score']
+
+                    mlflow.log_params({
+                        "Test mse" : mse,
+                        "Test rmse" : rmse,
+                        "Test mae" : mae,
+                        "Test mape" : mape,
+                        "Test r2_score" : r2_score
+                    })
+
+                    self.logger.info(f"Test MSE: {mse:.4f}")
+                    self.logger.info(f"Test RMSE: {rmse:.4f}")
+                    self.logger.info(f"Test MAE: {mae:.4f}")
+                    self.logger.info(f"Test MAPE: {mape:.4f}")
+                    self.logger.info(f"Test R2_score: {r2_score:.4f}")
+
+                except Exception as e:
+                    self.logger.error(f"Error in step 4 - Error evaluating model using regression metrics")
+                    raise 
+        
+        self.logger.info(f"="*50)
+        self.logger.info(f"MODEL EVALUATION COMPLETED")
+        self.logger.info(f"="*50)
+
+def main(config_path: str = 'config/evaluation_config.yaml'):
+    """
+    Main entry point for the pipeline.
+    
+    Args:
+        config_path: Path to configuration YAML file
+    """
+    import yaml
+    
+    # Load configuration
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Run pipeline
+    pipeline = ModelEvaluationPipeline(config)
+    pipeline.execute()
+    
 
 
 
+if __name__ == "__main__":
+    # Run the pipeline
+    main()
