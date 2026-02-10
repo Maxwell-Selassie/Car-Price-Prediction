@@ -47,106 +47,103 @@ class ModelEvaluationPipeline(LoggerMixin):
         with mlflow.start_run(run_name="ModelEvaluation_pipeline") as run:
             mlflow.set_tag("stage", "evaluation")
 
-        # step 1: Data Loading
-        with mlflow.start_run(run_name="Data Loaiding", nested=True):
-            with Timer("Load_data", self.logger):
-                self.logger.info("="*50)
-                self.logger.info("LOADING TEST DATA")
-                self.logger.info("="*50)
+            # step 1: Data Loading
+            with mlflow.start_run(run_name="Data Loaiding", nested=True):
+                with Timer("Load_data", self.logger):
+                    self.logger.info("="*50)
+                    self.logger.info("LOADING TEST DATA")
+                    self.logger.info("="*50)
 
-                try:
-                    self.load_data.load_test_data()
+                    try:
+                        self.load_data.load_test_data()
 
-                    self.x_test = self.load_data.X_test
-                    self.y_test = self.load_data.y_test
+                        self.x_test = self.load_data.X_test
+                        self.y_test = self.load_data.y_test
 
-                    data_info = {
-                        "x_test_samples" : len(self.x_test),
-                        "y_test_samples" : len(self.y_test),
-                        "n_features" : len(self.x_test.columns.tolist()),
-                        "feature_names" : self.x_test.columns.tolist()
-                    }
+                        data_info = {
+                            "x_test_samples" : len(self.x_test),
+                            "y_test_samples" : len(self.y_test),
+                            "n_features" : len(self.x_test.columns.tolist()),
+                            "feature_names" : self.x_test.columns.tolist()
+                        }
 
-                    self.logger.info(f"Data loaded successfully")
-                    self.logger.info("X_Test samples: ",data_info['x_test_samples'])
-                    self.logger.info("Y Test samples: ", data_info["y_test_samples"])
-                    self.logger.info("Number of features: ",data_info["n_features"])
+                        self.logger.info(f"Data loaded successfully")
 
-                    self.pipeline_results["data_loading"] = data_info
+                        self.pipeline_results["data_loading"] = data_info
+                    
+                    except Exception as e:
+                        self.logger.error(f"Error in step 1 - Data Loading: {e}")
+                        raise 
                 
-                except Exception as e:
-                    self.logger.error(f"Error in step 1 - Data Loading: {e}")
-                    raise 
+            # step 2: Load Model
+            with mlflow.start_run(run_name="Model_Loading", nested=True):
+                with Timer("Model_Loading", self.logger):
+                    self.logger.info("="*50)
+                    self.logger.info("STEP 1: LOADING MODEL")
+                    self.logger.info("="*50)
+
+                    try: 
+                        # load best model from mlflow
+                        self.best_model = self.load_model.load_model()
+
+                        self.logger.info(f"Best Model successfully loaded from mlflow")
+
+                    except Exception as e:
+                        self.logger.error(f"Error in step 2 - Model loading failed: {e}")
+                        raise 
+
+            # step 3: Run Predictions
+            with mlflow.start_run(run_name="Run_Predictions", nested=True):
+                with Timer("Run_Predictions", self.logger):
+
+                    self.logger.info("="*50)
+                    self.logger.info("STEP 1: RUNNING PREDICTIONS")
+                    self.logger.info("="*50)
+
+                    try: 
+                        self.y_pred = self.run_predictions.predictions(self.best_model, self.x_test)
+
+                        self.logger.info(f"Predictions run successfully")
+
+                    except Exception as e:
+                        self.logger.error(f"Error in step 3 - Predictions run successfully on test data")
+                        raise 
+
+            # step 4: evaluate model with regression metrics
+            with mlflow.start_run(run_name="Regression Metrics", nested=True):
+                with Timer("Regression metrics", self.logger):
+
+                    self.logger.info("="*50)
+                    self.logger.info("STEP 1: REGRESSION METRICS")
+                    self.logger.info("="*50)
+
+                    try:
+                        self.eval_metrics = self.regression_metrics.metrics(self.y_test, self.y_pred)
+
+                        mse = self.eval_metrics['mse']
+                        rmse = self.eval_metrics['rmse']
+                        mae = self.eval_metrics['mae']
+                        mape = self.eval_metrics['mape']
+                        r2_score = self.eval_metrics['r2_score']
+
+                        mlflow.log_params({
+                            "Test mse" : mse,
+                            "Test rmse" : rmse,
+                            "Test mae" : mae,
+                            "Test mape" : mape,
+                            "Test r2_score" : r2_score
+                        })
+
+                        self.logger.info(f"Test MSE: {mse:.4f}")
+                        self.logger.info(f"Test RMSE: {rmse:.4f}")
+                        self.logger.info(f"Test MAE: {mae:.4f}")
+                        self.logger.info(f"Test MAPE: {mape:.4f}")
+                        self.logger.info(f"Test R2_score: {r2_score:.4f}")
+
+                    except Exception as e:
+                        self.logger.error(f"Error in step 4 - Error evaluating model using regression metrics")
+                        raise 
             
-        # step 2: Load Model
-        with mlflow.start_run(run_name="Model_Loading", nested=True):
-            with Timer("Model_Loading", self.logger):
-                self.logger.info("="*50)
-                self.logger.info("STEP 1: LOADING MODEL")
-                self.logger.info("="*50)
-
-                try: 
-                    # load best model from mlflow
-                    self.best_model = self.load_model.load_model()
-
-                    self.logger.info(f"Best Model successfully loaded from mlflow")
-
-                except Exception as e:
-                    self.logger.error(f"Error in step 2 - Model loading failed: {e}")
-                    raise 
-
-        # step 3: Run Predictions
-        with mlflow.start_run(run_name="Run_Predictions", nested=True):
-            with Timer("Run_Predictions", self.logger):
-
-                self.logger.info("="*50)
-                self.logger.info("STEP 1: RUNNING PREDICTIONS")
-                self.logger.info("="*50)
-
-                try: 
-                    self.y_pred = self.run_predictions.predictions(self.best_model, self.x_test)
-
-                    self.logger.info(f"Predictions run successfully")
-
-                except Exception as e:
-                    self.logger.error(f"Error in step 3 - Predictions run successfully on test data")
-                    raise 
-
-        # step 4: evaluate model with regression metrics
-        with mlflow.start_run(run_name="Regression Metrics", nested=True):
-            with Timer("Regression metrics", self.logger):
-
-                self.logger.info("="*50)
-                self.logger.info("STEP 1: REGRESSION METRICS")
-                self.logger.info("="*50)
-
-                try:
-                    self.eval_metrics = self.regression_metrics.metrics(self.y_test, self.y_pred)
-
-                    mse = self.eval_metrics['mse']
-                    rmse = self.eval_metrics['rmse']
-                    mae = self.eval_metrics['mae']
-                    mape = self.eval_metrics['mape']
-                    r2_score = self.eval_metrics['r2_score']
-
-                    mlflow.log_params({
-                        "Test mse" : mse,
-                        "Test rmse" : rmse,
-                        "Test mae" : mae,
-                        "Test mape" : mape,
-                        "Test r2_score" : r2_score
-                    })
-
-                    self.logger.info(f"Test MSE: {mse:.4f}")
-                    self.logger.info(f"Test RMSE: {rmse:.4f}")
-                    self.logger.info(f"Test MAE: {mae:.4f}")
-                    self.logger.info(f"Test MAPE: {mape:.4f}")
-                    self.logger.info(f"Test R2_score: {r2_score:.4f}")
-
-                except Exception as e:
-                    self.logger.error(f"Error in step 4 - Error evaluating model using regression metrics")
-                    raise 
-        
         self.logger.info(f"="*50)
         self.logger.info(f"MODEL EVALUATION COMPLETED")
         self.logger.info(f"="*50)

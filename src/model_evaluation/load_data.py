@@ -14,9 +14,6 @@ class LoadData(LoggerMixin):
 
     def load_test_data(self):
         """Load the held-out test set for evaluation"""
-        self.logger.info("="*50)
-        self.logger.info(f"LOADING TEST DATA")
-        self.logger.info("="*50)
 
         # target variable
         target_variable = self.config.get("target_column", "selling_price_log")
@@ -33,7 +30,6 @@ class LoadData(LoggerMixin):
             self.logger.info(f"Number of features: {self.X_test.shape[1]}")
             self.logger.info(f'Shape of test fetures: {self.X_test.shape}')
             self.logger.info(f"Target variable shape: {self.y_test.shape}")
-            self.logger.info("Success: Data Loaded successfully")
             
         except Exception as e:
             self.logger.error(f'Error loading test data: {e}')
