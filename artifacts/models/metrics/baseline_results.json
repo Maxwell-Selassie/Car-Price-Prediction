@@ -5,7 +5,7 @@
             "random_state": 42,
             "max_iter": 2000
         },
-        "training_time": "0.01s"
+        "training_time": "0.04s"
     },
     "XGBoost": {
         "params": {
@@ -18,7 +18,7 @@
             "n_jobs": -1,
             "objective": "reg:squarederror"
         },
-        "training_time": "0.49s"
+        "training_time": "0.60s"
     },
     "LightGBM": {
         "params": {
@@ -29,7 +29,7 @@
             "subsample": 0.8,
             "num_leaves": 31
         },
-        "training_time": "3.24s"
+        "training_time": "5.62s"
     },
     "RandomForest": {
         "params": {
@@ -38,6 +38,6 @@
             "min_samples_split": 4,
             "min_samples_leaf": 3
         },
-        "training_time": "1.38s"
+        "training_time": "1.87s"
     }
 }

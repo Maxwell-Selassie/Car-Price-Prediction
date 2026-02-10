@@ -2,6 +2,7 @@
 
 
 from utils import LoggerMixin
+import mlflow
 
 class LoadModel(LoggerMixin):
     def __init__(self, config):
@@ -21,7 +22,8 @@ class LoadModel(LoggerMixin):
         self.logger.info("="*50)
         try:
             if self.model is None:
-                self.model = self.config.get('model_uri','models:/RandomForest_model@production')
+                model_uri = self.config.get('model_uri','models:/RandomForest_model@production')
+                self.model = mlflow.pyfunc.load_model(model_uri=model_uri)
         
         except Exception as e:
             self.logger.error(f'Error loading model from mlflow: {e}')

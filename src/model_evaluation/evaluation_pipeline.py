@@ -63,7 +63,7 @@ class ModelEvaluationPipeline(LoggerMixin):
                     data_info = {
                         "x_test_samples" : len(self.x_test),
                         "y_test_samples" : len(self.y_test),
-                        "n_features" : len(self.x_test.columns),
+                        "n_features" : len(self.x_test.columns.tolist()),
                         "feature_names" : self.x_test.columns.tolist()
                     }
 

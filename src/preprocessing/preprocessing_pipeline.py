@@ -67,124 +67,124 @@ class PreprocessingPipeline:
             with mlflow.start_run(run_name="Preprocessing_Pipeline") as run:
                 mlflow.set_tag("stage", "preprocessing")
 
-            # step 0: Data Loading
-            with mlflow.start_run(run_name="Data_Loading", nested=True):
-                with Timer("Data Loading", self.logger):
-                    data_loader = DataLoader(self.config)
-                    df = data_loader.load_dataset(self.config["file_paths"].get("raw_data", "data/raw/car_details.csv"))
-                    mlflow.log_param('Original_dataset_shape', df.shape)
-                
-
-            # step 2: Data Splitter
-            with mlflow.start_run(run_name="Data_Splitting", nested=True):
-                with Timer("Data Splitting", self.logger):
-                    splitter = DataSplitter(self.config)
-                    train_df, test_df = splitter.split_data(df)
-                    splitter.save_splits()
-
-
-            # step 3: Data Cleaning
-            with mlflow.start_run(run_name="Data_Cleaning", nested=True):
-                with Timer("Data Cleaning", self.logger):
-                    # clean train data
-                    cleaner = DataCleaner(self.config)
-                    train_df = cleaner.clean_data(train_df)
-                    cleaner.save_cleaning_report('train')
-
-                    # clean test data
-                    test_df = cleaner.clean_data(test_df)
-                    cleaner.save_cleaning_report('test')
-
-                    self.logger.info(f'Train set shape after cleaning: {train_df.shape}')
-                    self.logger.info(f'Test set shape after cleaning: {test_df.shape}')
-
-                    mlflow.log_params({
-                        'train_df_shape_after_cleaning' : train_df.shape,
-                        'test_df_shape_after_cleaning' : test_df.shape
-                    })
-
-
-            # step 4: Feature Transformation
-            with mlflow.start_run(run_name="Feature_Transformation", nested=True):
-                with Timer("Feature Transformation", self.logger):
-                    transformer = FeatureTransformer(self.config)
-                    # transform train and test data
-                    train_df = transformer.transform_features(train_df)
-                    test_df = transformer.transform_features(test_df)
-                    transformer.save_transformation_report()
-
-                    self.logger.info(f'Train set shape after transformation: {train_df.shape}')
-                    self.logger.info(f'Test set shape after transformation: {test_df.shape}')
-
-                    mlflow.log_params({
-                        'train_df_shape_after_transformation' : train_df.shape,
-                        'test_df_shape_after_transformation' : test_df.shape
-                    })
-
-
-            # step 5: Feature Encoding
-            with mlflow.start_run(run_name="Feature_Encoding", nested=True):
-                with Timer("Feature Encoding", self.logger):
-                    encoder = FeatureEncoder(self.config)
-                    # fit_transform on train data and transform test data
-                    train_df = encoder.fit_transform(train_df)
-                    test_df = encoder.transform(test_df)
-
-                    self.logger.info(f'Train set shape after encoding: {train_df.shape}')
-                    self.logger.info(f'Test set shape after encoding: {test_df.shape}')
-
-                    mlflow.log_params({
-                        'train_df_shape_after_encoding' : train_df.shape,
-                        'test_df_shape_after_encoding' : test_df.shape
-                    })
-
-            # step 6: Feature Scaling
-            with mlflow.start_run(run_name="Feature_Scaling", nested=True):
-                with Timer("Feature Scaling", self.logger):
-                    scaler = FeatureScaler(self.config)
-                    # fit_transform on train data and transform test data
-                    numeric_columns_train = train_df.select_dtypes(include=[np.number]).columns.tolist() # numeric columns for train data
-                    train_df = scaler.fit_transform(train_df, numeric_columns_train)
-
-                    # numeric columns for test data
-                    numeric_columns_test = test_df.select_dtypes(include=[np.number]).columns.tolist()
-                    test_df = scaler.transform(test_df, numeric_columns_test)
-
-                    mlflow.log_params({
-                        'train_df_shape_after_scaling' : train_df.shape,
-                        'test_df_shape_after_scaling' : test_df.shape
-                    })
-
-                    self.logger.info(f'Train set shape after scaling: {train_df.shape}')
-                    self.logger.info(f'Test set shape after scaling: {test_df.shape}')
-
-
-            # step 7: Feature Selection
-            with mlflow.start_run(run_name="Feature_Selection", nested=True):
-                with Timer("Feature Selection", self.logger):
-                    selector = FeatureSelector(self.config)
-                    # fit_transform on train data and transform test data
-                    X_train = train_df.drop(columns=[self.config['target_variable']])
-                    y_train = train_df[self.config['target_variable']]
-                    selected_features = selector.fit_transform(X_train, y_train)
-                    selector.save_selected_features(X_train)
+                # step 0: Data Loading
+                with mlflow.start_run(run_name="Data_Loading", nested=True):
+                    with Timer("Data Loading", self.logger):
+                        data_loader = DataLoader(self.config)
+                        df = data_loader.load_dataset(self.config["file_paths"].get("raw_data", "data/raw/car_details.csv"))
+                        mlflow.log_param('Original_dataset_shape', df.shape)
                     
-                    # Get selected feature names
-                    selected_feature_names = selector.selected_features(X_train)
 
-                    # Convert numpy array to DataFrame with selected feature names
-                    selected_features = pd.DataFrame(selected_features, columns=selected_feature_names)
-                    train_df = pd.concat([selected_features, y_train.reset_index(drop=True)], axis=1)
+                # step 2: Data Splitter
+                with mlflow.start_run(run_name="Data_Splitting", nested=True):
+                    with Timer("Data Splitting", self.logger):
+                        splitter = DataSplitter(self.config)
+                        train_df, test_df = splitter.split_data(df)
+                        splitter.save_splits()
 
 
-                    X_test = test_df.drop(columns=[self.config['target_variable']])
-                    y_test = test_df[self.config['target_variable']]
-                    selected_test_features = selector.transform(X_test)
-                    selected_test_features = pd.DataFrame(selected_test_features, columns=selected_feature_names)
-                    test_df = pd.concat([selected_test_features, y_test.reset_index(drop=True)], axis=1)
+                # step 3: Data Cleaning
+                with mlflow.start_run(run_name="Data_Cleaning", nested=True):
+                    with Timer("Data Cleaning", self.logger):
+                        # clean train data
+                        cleaner = DataCleaner(self.config)
+                        train_df = cleaner.clean_data(train_df)
+                        cleaner.save_cleaning_report('train')
 
-                    self.logger.info(f'Train set shape after feature selection: {train_df.shape}')
-                    self.logger.info(f'Test set shape after feature selection: {test_df.shape}')
+                        # clean test data
+                        test_df = cleaner.clean_data(test_df)
+                        cleaner.save_cleaning_report('test')
+
+                        self.logger.info(f'Train set shape after cleaning: {train_df.shape}')
+                        self.logger.info(f'Test set shape after cleaning: {test_df.shape}')
+
+                        mlflow.log_params({
+                            'train_df_shape_after_cleaning' : train_df.shape,
+                            'test_df_shape_after_cleaning' : test_df.shape
+                        })
+
+
+                # step 4: Feature Transformation
+                with mlflow.start_run(run_name="Feature_Transformation", nested=True):
+                    with Timer("Feature Transformation", self.logger):
+                        transformer = FeatureTransformer(self.config)
+                        # transform train and test data
+                        train_df = transformer.transform_features(train_df)
+                        test_df = transformer.transform_features(test_df)
+                        transformer.save_transformation_report()
+
+                        self.logger.info(f'Train set shape after transformation: {train_df.shape}')
+                        self.logger.info(f'Test set shape after transformation: {test_df.shape}')
+
+                        mlflow.log_params({
+                            'train_df_shape_after_transformation' : train_df.shape,
+                            'test_df_shape_after_transformation' : test_df.shape
+                        })
+
+
+                # step 5: Feature Encoding
+                with mlflow.start_run(run_name="Feature_Encoding", nested=True):
+                    with Timer("Feature Encoding", self.logger):
+                        encoder = FeatureEncoder(self.config)
+                        # fit_transform on train data and transform test data
+                        train_df = encoder.fit_transform(train_df)
+                        test_df = encoder.transform(test_df)
+
+                        self.logger.info(f'Train set shape after encoding: {train_df.shape}')
+                        self.logger.info(f'Test set shape after encoding: {test_df.shape}')
+
+                        mlflow.log_params({
+                            'train_df_shape_after_encoding' : train_df.shape,
+                            'test_df_shape_after_encoding' : test_df.shape
+                        })
+
+                # step 6: Feature Scaling
+                with mlflow.start_run(run_name="Feature_Scaling", nested=True):
+                    with Timer("Feature Scaling", self.logger):
+                        scaler = FeatureScaler(self.config)
+                        # fit_transform on train data and transform test data
+                        numeric_columns_train = train_df.select_dtypes(include=[np.number]).columns.tolist() # numeric columns for train data
+                        train_df = scaler.fit_transform(train_df, numeric_columns_train)
+
+                        # numeric columns for test data
+                        numeric_columns_test = test_df.select_dtypes(include=[np.number]).columns.tolist()
+                        test_df = scaler.transform(test_df, numeric_columns_test)
+
+                        mlflow.log_params({
+                            'train_df_shape_after_scaling' : train_df.shape,
+                            'test_df_shape_after_scaling' : test_df.shape
+                        })
+
+                        self.logger.info(f'Train set shape after scaling: {train_df.shape}')
+                        self.logger.info(f'Test set shape after scaling: {test_df.shape}')
+
+
+                # step 7: Feature Selection
+                with mlflow.start_run(run_name="Feature_Selection", nested=True):
+                    with Timer("Feature Selection", self.logger):
+                        selector = FeatureSelector(self.config)
+                        # fit_transform on train data and transform test data
+                        X_train = train_df.drop(columns=[self.config['target_variable']])
+                        y_train = train_df[self.config['target_variable']]
+                        selected_features = selector.fit_transform(X_train, y_train)
+                        selector.save_selected_features(X_train)
+                        
+                        # Get selected feature names
+                        selected_feature_names = selector.selected_features(X_train)
+
+                        # Convert numpy array to DataFrame with selected feature names
+                        selected_features = pd.DataFrame(selected_features, columns=selected_feature_names)
+                        train_df = pd.concat([selected_features, y_train.reset_index(drop=True)], axis=1)
+
+
+                        X_test = test_df.drop(columns=[self.config['target_variable']])
+                        y_test = test_df[self.config['target_variable']]
+                        selected_test_features = selector.transform(X_test)
+                        selected_test_features = pd.DataFrame(selected_test_features, columns=selected_feature_names)
+                        test_df = pd.concat([selected_test_features, y_test.reset_index(drop=True)], axis=1)
+
+                        self.logger.info(f'Train set shape after feature selection: {train_df.shape}')
+                        self.logger.info(f'Test set shape after feature selection: {test_df.shape}')
 
 
 
