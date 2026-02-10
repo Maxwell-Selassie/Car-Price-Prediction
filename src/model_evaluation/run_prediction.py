@@ -23,9 +23,6 @@ class RunPredictions(LoggerMixin):
         Returns:
             A one-dimensional array or None if X_test is empty
             """
-        self.logger.info(f'='*50)
-        self.logger.info('RUNNING PREDICTIONS ON TEST SET')
-        self.logger.info(f'='*50)
 
         target_variable = self.config.get("target_column", "selling_price_log")
 

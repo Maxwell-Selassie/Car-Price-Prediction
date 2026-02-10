@@ -11,7 +11,7 @@ import mlflow
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import LoggerMixin, Timer
-from model_evaluation import LoadData, LoadModel, RegressionMetrics,RunPredictions
+from model_evaluation import LoadData, LoadModel, ModelEvaluation,RunPredictions
 
 class ModelEvaluationPipeline(LoggerMixin):
     def __init__(self, config):
@@ -21,7 +21,7 @@ class ModelEvaluationPipeline(LoggerMixin):
         self.load_data = LoadData(config)
         self.load_model = LoadModel(config)
         self.run_predictions = RunPredictions(config)
-        self.regression_metrics = RegressionMetrics(config)
+        self.evaluation = ModelEvaluation(config)
         self.pipeline_results = {}
         self.y_pred = None
         self.x_test = None
@@ -118,7 +118,7 @@ class ModelEvaluationPipeline(LoggerMixin):
                     self.logger.info("="*50)
 
                     try:
-                        self.eval_metrics = self.regression_metrics.metrics(self.y_test, self.y_pred)
+                        self.eval_metrics = self.evaluation.metrics(self.y_test, self.y_pred)
 
                         mse = self.eval_metrics['mse']
                         rmse = self.eval_metrics['rmse']
@@ -134,6 +134,9 @@ class ModelEvaluationPipeline(LoggerMixin):
                             "Test r2_score" : r2_score
                         })
 
+                        # permutation importance for model evaluation
+                        self.evaluation.permutation_importance(self.best_model, self.x_test, self.y_test)
+
                         self.logger.info(f"Test MSE: {mse:.4f}")
                         self.logger.info(f"Test RMSE: {rmse:.4f}")
                         self.logger.info(f"Test MAE: {mae:.4f}")
@@ -141,7 +144,7 @@ class ModelEvaluationPipeline(LoggerMixin):
                         self.logger.info(f"Test R2_score: {r2_score:.4f}")
 
                     except Exception as e:
-                        self.logger.error(f"Error in step 4 - Error evaluating model using regression metrics")
+                        self.logger.error(f"Error in step 4 - Error evaluating model")
                         raise 
             
         self.logger.info(f"="*50)

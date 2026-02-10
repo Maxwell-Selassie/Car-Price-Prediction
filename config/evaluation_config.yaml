@@ -3,6 +3,7 @@
 # will be used to evaluate our production model
 
 model_uri: "models:/RandomForest_model@production"
+mlflow_tracking_uri: "sqlite:///mlflow_car.db"
 test_file_path: "data/processed/test_processed_v1.csv"
 
 target_column: 'selling_price_log'
