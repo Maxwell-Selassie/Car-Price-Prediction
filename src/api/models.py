@@ -4,17 +4,19 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional
 import logging
-from .config import settings
+from utils import LoggerMixin
+from api import Settings
 
-logger = logging.getLogger(__name__)
 
-class ModelManager:
+class ModelManager(LoggerMixin):
     """Manages ML model loading and predictions"""
     
     def __init__(self):
+        
         self.model = None
         self.model_info: Dict = {}
         self.feature_names: List[str] = []
+        self.logger = self.
         self._load_model()
     
     def _load_model(self):

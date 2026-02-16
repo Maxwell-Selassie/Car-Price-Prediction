@@ -51,4 +51,3 @@ class Settings:
     def api_version(self) -> str:
         return self.config.get("api", {}).get("version", "1.0.0")
     
-settings = Settings()
